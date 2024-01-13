@@ -2,6 +2,11 @@ import LiveService from "../services/Live.service.js";
 import LiveModel from "../models/Live.model.js";
 import ClassModel from "../models/Class.model.js";
 import { createRouter } from "../helpers/mediasoup-helpers.js";
+import { config } from "dotenv";
+
+config();
+
+const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({ ip }));
 
 const liveService = new LiveService(LiveModel, ClassModel);
 
@@ -17,7 +22,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 	socket.on("createProducerTransport", async (callback) => {
 		producerTransport = await router.createWebRtcTransport({
-			listenIps: ["192.168.8.101"],
+			listenIps: ips,
 			enableUdp: true,
 			enableTcp: true,
 			preferUdp: true,
@@ -34,7 +39,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 	socket.on("createConsumerTransport", async (callback) => {
 		consumerTransport = await router.createWebRtcTransport({
-			listenIps: ["192.168.8.101"],
+			listenIps: ips,
 			enableUdp: true,
 			enableTcp: true,
 			preferUdp: true,
