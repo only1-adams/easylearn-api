@@ -1,7 +1,8 @@
 import LiveService from "../services/Live.service.js";
 import LiveModel from "../models/Live.model.js";
 import ClassModel from "../models/Class.model.js";
-import { createRouter } from "../helpers/mediasoup-helpers.js";
+import CreatorService from "../services/Creator.service.js";
+import CreatorModel from "../models/Creator.model.js";
 import { config } from "dotenv";
 
 config();
@@ -9,6 +10,7 @@ config();
 const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({ ip }));
 
 const liveService = new LiveService(LiveModel, ClassModel);
+const creatorService = new CreatorService(CreatorModel, ClassModel);
 
 let producerTransport;
 let consumerTransport;
@@ -16,6 +18,9 @@ let producer;
 let consumer;
 
 export default async function recordClassHandler(io, socket, worker, router) {
+	const { classId } = socket.handshake.auth;
+	socket.join(classId);
+
 	socket.on("getRtpCapabilities", (callback) => {
 		callback({ rtpCapabilities: router.rtpCapabilities });
 	});
@@ -55,20 +60,20 @@ export default async function recordClassHandler(io, socket, worker, router) {
 	});
 
 	socket.on("connectProducerTransport", async (data, callback) => {
-		const { transportId, dtlsParameters } = data;
+		const { dtlsParameters } = data;
 		producerTransport?.connect({ dtlsParameters });
 		callback();
 	});
 
 	socket.on("connectConsumerTransport", async (data, callback) => {
-		const { transportId, dtlsParameters } = data;
+		const { dtlsParameters } = data;
 		consumerTransport?.connect({ dtlsParameters });
 		callback();
 	});
 
 	socket.on("transport-produce", async (data, callback) => {
 		const { classId } = socket.handshake.auth;
-		const { transportId, kind, rtpParameters } = data;
+		const { kind, rtpParameters } = data;
 
 		producer = await producerTransport.produce({ kind, rtpParameters });
 
@@ -122,7 +127,12 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		consumer?.resume();
 	});
 
-	socket.on("endLiveClass", () => {
+	socket.on("endLiveClass", async () => {
+		const { classId } = socket.handshake.auth;
+		await liveService.deleteLiveClass(classId);
+		await creatorService.updateClass(classId, { status: "finished" });
+
 		producerTransport.close();
+		socket.to(classId).emit("classEnded");
 	});
 }

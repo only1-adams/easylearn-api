@@ -102,3 +102,13 @@ export const getCreatorDetails = asyncCatch(async (req, res) => {
 
 	res.status(200).json({ creator: creator });
 });
+
+export const getCreatorClasses = asyncCatch(async (req, res) => {
+	const creatorId = req.params.creatorId;
+
+	const creatorClasses = await creatorService.getCreatorUploadedClasses(
+		creatorId
+	);
+
+	res.status(200).json({ classes: creatorClasses });
+});

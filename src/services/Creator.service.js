@@ -41,4 +41,25 @@ export default class CreatorService {
 
 		return newClass.save();
 	}
+
+	updateClass(classId, data) {
+		if (!classId || !data) {
+			throwError("class Id and data is required", 422);
+		}
+
+		const updatedClass = this.Class.findByIdAndUpdate(classId, data, {
+			runValidators: true,
+			returnDocumentAfter: true,
+		});
+
+		return updatedClass;
+	}
+
+	getCreatorUploadedClasses(creatorId) {
+		if (!creatorId) {
+			throwError("Creator ID is required", 422);
+		}
+
+		return this.Class.find({ creator: creatorId, status: "finished" });
+	}
 }

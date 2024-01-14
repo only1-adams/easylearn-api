@@ -18,9 +18,16 @@ export default class LiveService {
 
 	getClassLive(classId) {
 		if (!classId) {
-			throwError("department id is required", 422);
+			throwError("class id is required", 422);
 		}
 
 		return this.Live.findOne({ class: classId });
+	}
+
+	deleteLiveClass(classId) {
+		if (!classId) {
+			throwError("class id is required", 422);
+		}
+		return this.Live.findOneAndDelete({ class: classId });
 	}
 }

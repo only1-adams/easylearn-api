@@ -24,14 +24,14 @@ export default class StudentService {
 		return this.Student.findOne({ user: userId });
 	}
 
-	getStudentLiveClasses(departmentId) {
+	getStudentLiveClasses(departmentId, level) {
 		if (!departmentId) {
 			throwError("Department Id must be provided", 422);
 		}
 
 		return this.Class.find({ status: "ongoing" }).populate({
 			path: "creator",
-			match: { department: departmentId },
+			match: { department: departmentId, level },
 		});
 	}
 }

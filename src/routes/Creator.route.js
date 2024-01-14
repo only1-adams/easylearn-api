@@ -5,6 +5,7 @@ import {
 	createClass,
 	creatorApplication,
 	creatorSignin,
+	getCreatorClasses,
 	getCreatorDetails,
 } from "../controllers/creator.controller.js";
 
@@ -41,6 +42,9 @@ router.post(
 );
 
 router.get("/me", isAuthenticated, getCreatorDetails);
+
+router.get("/uploaded-classes/:creatorId", isAuthenticated, getCreatorClasses);
+
 const CreatorRoutes = router;
 
 export default CreatorRoutes;

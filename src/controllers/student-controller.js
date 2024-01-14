@@ -36,7 +36,10 @@ export const getStudentLives = asyncCatch(async (req, res) => {
 
 	const student = await studentService.getStudentByUserId(user._id);
 
-	const lives = await studentService.getStudentLiveClasses(student.department);
+	const lives = await studentService.getStudentLiveClasses(
+		student.department,
+		student.level
+	);
 
 	res.status(200).json({ lives });
 });
