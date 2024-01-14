@@ -7,7 +7,10 @@ import { config } from "dotenv";
 
 config();
 
-const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({ ip }));
+const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({
+	ip: "0.0.0.0",
+	announcedIp: ip,
+}));
 
 const liveService = new LiveService(LiveModel, ClassModel);
 const creatorService = new CreatorService(CreatorModel, ClassModel);
