@@ -8,8 +8,8 @@ import { config } from "dotenv";
 config();
 
 const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({
-	ip: ip,
-	// announcedIp: ip,
+	ip: "0.0.0.0",
+	announcedIp: ip,
 }));
 
 const liveService = new LiveService(LiveModel, ClassModel);
@@ -97,6 +97,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		const producerId = liveClassData.producerId;
 
 		if (router.canConsume({ producerId, rtpCapabilities })) {
+			console.log("yes i can");
 			consumer = await consumerTransport.consume({
 				producerId,
 				rtpCapabilities,
