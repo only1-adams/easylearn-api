@@ -8,8 +8,8 @@ import { config } from "dotenv";
 config();
 
 const ips = process.env.LISTEN_IPS.split(",").map((ip) => ({
-	ip: "0.0.0.0",
-	announcedIp: ip,
+	ip: ip,
+	// announcedIp: ip,
 }));
 
 const liveService = new LiveService(LiveModel, ClassModel);
