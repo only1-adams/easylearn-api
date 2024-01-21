@@ -5,8 +5,11 @@ import {
 	createClass,
 	creatorApplication,
 	creatorSignin,
+	getClassAttendance,
+	getClassdata,
 	getCreatorClasses,
 	getCreatorDetails,
+	getClassMessages,
 } from "../controllers/creator.controller.js";
 
 const router = express.Router();
@@ -36,7 +39,7 @@ router.post(
 		body("creator").exists().trim().notEmpty(),
 		body("courseTitle").exists().trim().notEmpty(),
 		body("courseCode").exists().trim().notEmpty(),
-		body("lectureName").exists().trim().notEmpty(),
+		body("lecturerName").exists().trim().notEmpty(),
 	],
 	createClass
 );
@@ -44,6 +47,12 @@ router.post(
 router.get("/me", isAuthenticated, getCreatorDetails);
 
 router.get("/uploaded-classes/:creatorId", isAuthenticated, getCreatorClasses);
+
+router.get("/class/:classId", isAuthenticated, getClassdata);
+
+router.get("/class/attendance/:classId", isAuthenticated, getClassAttendance);
+
+router.get("/class/messages/:classId", isAuthenticated, getClassMessages);
 
 const CreatorRoutes = router;
 

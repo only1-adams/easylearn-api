@@ -4,6 +4,7 @@ import {
 	signUserIn,
 	signUserUp,
 	getUserDetails,
+	activateAccount,
 } from "../controllers/auth.controller.js";
 import isAuthenticated from "../middlewares/is-authenticated.js";
 
@@ -48,6 +49,13 @@ router.post(
 );
 
 router.get("/me", isAuthenticated, getUserDetails);
+
+router.post(
+	"/activate",
+	[body("activationCode").exists().isNumeric().isLength({ max: 4 })],
+	isAuthenticated,
+	activateAccount
+);
 
 const AuthRoutes = router;
 

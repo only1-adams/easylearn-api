@@ -14,6 +14,9 @@ import { throwError } from "../helpers/error-helpers.js";
 import generateCreatorEmail from "../utils/generate-creator-email.js";
 import ShortUniqueId from "short-unique-id";
 import { hashPassword } from "../helpers/auth-helpers.js";
+import AttendanceModel from "../models/Attendance.model.js";
+import MessageModel from "../models/Message.model.js";
+import MessageService from "../services/Message.service.js";
 
 const universityService = new UniversityService(
 	UniversityModel,
@@ -21,11 +24,17 @@ const universityService = new UniversityService(
 	DepartmentModel
 );
 
-const creatorService = new CreatorService(CreatorModel, ClassModel);
+const creatorService = new CreatorService(
+	CreatorModel,
+	ClassModel,
+	AttendanceModel
+);
 
 const userService = new UserService(UserModel);
 
 const authService = new AuthService(UserService);
+
+const messageService = new MessageService(MessageModel);
 
 export const creatorApplication = asyncCatch(async (req, res) => {
 	const { department, level } = validateRequestBody(req);
@@ -65,6 +74,7 @@ export const creatorApplication = asyncCatch(async (req, res) => {
 		email: creatorEmail,
 		password: hashedCreatorPassword,
 		role: "creator",
+		activated: true,
 	}); // create user document for creator
 
 	await creatorService.createCreator({
@@ -105,10 +115,58 @@ export const getCreatorDetails = asyncCatch(async (req, res) => {
 
 export const getCreatorClasses = asyncCatch(async (req, res) => {
 	const creatorId = req.params.creatorId;
+	const page = req.query.page;
+	const limit = 10;
+
+	const skip = (page - 1) * limit;
 
 	const creatorClasses = await creatorService.getCreatorUploadedClasses(
-		creatorId
+		creatorId,
+		skip,
+		limit
 	);
 
-	res.status(200).json({ classes: creatorClasses });
+	const totalDocuments = await creatorService.countUploadedClasses(creatorId);
+
+	// Calculate total pages
+	const totalPages = Math.ceil(totalDocuments / limit);
+
+	// Determine if there are more pages
+	const hasNextPage = page < totalPages;
+
+	// Calculate next page number
+	const nextPage = hasNextPage ? +page + 1 : null;
+
+	res.status(200).json({
+		classes: creatorClasses,
+		pagination: {
+			currentPage: +page,
+			hasNextPage: hasNextPage,
+			totalPages: +totalPages,
+			nextPage: nextPage,
+		},
+	});
+});
+
+export const getClassdata = asyncCatch(async (req, res) => {
+	const classId = req.params.classId;
+
+	const classData = await creatorService.getClassdata(classId);
+
+	res.status(200).json({ classData });
+});
+
+export const getClassAttendance = asyncCatch(async (req, res) => {
+	const classId = req.params.classId;
+	const attendance = await creatorService.getClassAttendance(classId);
+
+	res.status(200).json({ attendance });
+});
+
+export const getClassMessages = asyncCatch(async (req, res) => {
+	const classId = req.params.classId;
+
+	const messages = await messageService.getClassMessages(classId);
+
+	res.status(200).json({ messages });
 });

@@ -24,3 +24,12 @@ export const signUserUp = asyncCatch(async (req, res) => {
 export const getUserDetails = asyncCatch(async (req, res) => {
 	res.status(200).json({ user: req.user });
 });
+
+export const activateAccount = asyncCatch(async (req, res) => {
+	const user = req.user;
+	const { activationCode } = validateRequestBody(req);
+
+	await authService.activateAccount(activationCode, user._id);
+
+	res.status(200).json({ message: "Account activated successfully" });
+});

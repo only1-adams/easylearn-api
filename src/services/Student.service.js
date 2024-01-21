@@ -1,9 +1,10 @@
 import { throwError } from "../helpers/error-helpers.js";
 
 export default class StudentService {
-	constructor(StudentModel, ClassModel) {
+	constructor(StudentModel, ClassModel, AttendanceModel) {
 		this.Student = StudentModel;
 		this.Class = ClassModel;
+		this.Attendance = AttendanceModel;
 	}
 
 	createStudent(studentDetails) {
@@ -21,7 +22,17 @@ export default class StudentService {
 			throwError("User Id must be provided", 422);
 		}
 
-		return this.Student.findOne({ user: userId });
+		return this.Student.findOne({ user: userId }).populate({
+			path: "department",
+		});
+	}
+
+	getStudentByMatricNo(matricNo) {
+		if (!matricNo) {
+			throwError("Matric No must be provided", 422);
+		}
+
+		return this.Student.findOne({ matricNo });
 	}
 
 	getStudentLiveClasses(departmentId, level) {
@@ -33,5 +44,18 @@ export default class StudentService {
 			path: "creator",
 			match: { department: departmentId, level },
 		});
+	}
+
+	markStudentAttendance(studentId, classId) {
+		if (!studentId || !classId) {
+			throwError("Student and Class ID must be provided", 422);
+		}
+
+		const attendance = new this.Attendance({
+			class: classId,
+			student: studentId,
+		});
+
+		return attendance.save();
 	}
 }

@@ -1,9 +1,10 @@
 import { throwError } from "../helpers/error-helpers.js";
 
 export default class CreatorService {
-	constructor(CreatorModel, ClassModel) {
+	constructor(CreatorModel, ClassModel, AttendanceModel) {
 		this.Creator = CreatorModel;
 		this.Class = ClassModel;
+		this.Attendance = AttendanceModel;
 	}
 
 	createCreator(creatorDetails) {
@@ -29,7 +30,15 @@ export default class CreatorService {
 			throwError("User Id is required", 422);
 		}
 
-		return this.Creator.findOne({ user: userId });
+		return this.Creator.findOne({ user: userId }).populate({
+			path: "department",
+			populate: {
+				path: "faculty",
+				populate: {
+					path: "university",
+				},
+			},
+		});
 	}
 
 	createClass(classData) {
@@ -55,11 +64,45 @@ export default class CreatorService {
 		return updatedClass;
 	}
 
-	getCreatorUploadedClasses(creatorId) {
+	getCreatorUploadedClasses(creatorId, skip, limit) {
 		if (!creatorId) {
 			throwError("Creator ID is required", 422);
 		}
 
-		return this.Class.find({ creator: creatorId, status: "finished" });
+		return this.Class.find({ creator: creatorId, status: "finished" })
+			.sort({
+				updatedAt: -1,
+			})
+			.skip(skip)
+			.limit(limit);
+	}
+
+	countUploadedClasses(creatorId) {
+		if (!creatorId) {
+			throwError("Creator ID is required", 422);
+		}
+
+		return this.Class.countDocuments({
+			creator: creatorId,
+			status: "finished",
+		});
+	}
+
+	getClassdata(classId) {
+		if (!classId) {
+			throwError("Class ID is required", 422);
+		}
+
+		return this.Class.findById(classId);
+	}
+
+	getClassAttendance(classId) {
+		if (!classId) {
+			throwError("Class ID is required", 422);
+		}
+
+		return this.Attendance.find({ class: classId }).populate({
+			path: "student class",
+		});
 	}
 }

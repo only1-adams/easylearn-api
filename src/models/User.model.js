@@ -28,6 +28,8 @@ const userSchema = new Schema(
 			required: true,
 			default: false,
 		},
+
+		activationCode: String,
 	},
 	{ timestamps: true }
 );

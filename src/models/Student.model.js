@@ -22,6 +22,8 @@ const studentSchema = new Schema(
 		matricNo: {
 			type: String,
 			required: true,
+			unique: true,
+			index: true,
 		},
 
 		level: {

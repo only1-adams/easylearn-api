@@ -22,7 +22,7 @@ const classSchema = new Schema(
 			required: true,
 		},
 
-		lectureName: {
+		lecturerName: {
 			type: String,
 			required: true,
 		},
