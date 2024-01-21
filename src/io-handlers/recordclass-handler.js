@@ -14,7 +14,7 @@ import {
 	getParticipantId,
 	getParticipantById,
 	deleteParticipant,
-	getClassParticioants,
+	getClassParticipants,
 } from "../redis-schemas/Participants.redis.js";
 
 config();
@@ -258,7 +258,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 	});
 
 	socket.on("getParticipants", async (cb) => {
-		const participants = await getClassParticioants(classId);
+		const participants = await getClassParticipants(classId);
 		cb({ participants });
 	});
 }

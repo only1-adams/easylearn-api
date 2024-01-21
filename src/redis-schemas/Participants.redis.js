@@ -35,7 +35,7 @@ export const deleteParticipant = async function (participant) {
 	return participantRepo.save(participant);
 };
 
-export const getClassParticioants = async function (classId) {
+export const getClassParticipants = async function (classId) {
 	return participantRepo.search().where("class").eq(classId).return.all();
 };
 

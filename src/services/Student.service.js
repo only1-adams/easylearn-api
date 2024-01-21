@@ -40,10 +40,14 @@ export default class StudentService {
 			throwError("Department Id must be provided", 422);
 		}
 
-		return this.Class.find({ status: "ongoing" }).populate({
-			path: "creator",
-			match: { department: departmentId, level },
-		});
+		return this.Class.find({ status: "ongoing" })
+			.populate({
+				path: "creator",
+				match: { department: departmentId, level },
+			})
+			.sort({
+				updatedAt: -1,
+			});
 	}
 
 	markStudentAttendance(studentId, classId) {
