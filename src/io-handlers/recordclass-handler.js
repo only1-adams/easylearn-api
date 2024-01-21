@@ -6,10 +6,16 @@ import CreatorService from "../services/Creator.service.js";
 import CreatorModel from "../models/Creator.model.js";
 import MessageModel from "../models/Message.model.js";
 import MessageService from "../services/Message.service.js";
+import ShortUniqueId from "short-unique-id";
 import { config } from "dotenv";
 import { throwError } from "../helpers/error-helpers.js";
-import { Schema, Repository, EntityId } from "redis-om";
-import { redis } from "../../redis-connection.js";
+import {
+	createNewParticipant,
+	getParticipantId,
+	getParticipantById,
+	deleteParticipant,
+	getClassParticioants,
+} from "../redis-schemas/Participants.redis.js";
 
 config();
 
@@ -30,21 +36,7 @@ let producerTransport;
 let consumerTransport;
 let producer;
 let consumer;
-let participantEntityID;
-let participantRepo;
-
-export async function initRedisSchema() {
-	const participantSchema = new Schema("participant", {
-		class: { type: "string" },
-		student: { type: "string" },
-	});
-
-	participantRepo = new Repository(participantSchema, redis);
-
-	await participantRepo.createIndex();
-
-	return true;
-}
+let participantEntityID; // used for getting the participant from redis via Redis-Om
 
 export default async function recordClassHandler(io, socket, worker, router) {
 	const { classId, isProducer } = socket.handshake.auth;
@@ -179,13 +171,16 @@ export default async function recordClassHandler(io, socket, worker, router) {
 					consumer?.close();
 				});
 
+				const { randomUUID } = new ShortUniqueId({ length: 10 });
+
 				let participant = {
 					class: classId,
 					student: student,
+					id: randomUUID(),
 				};
 
-				participant = await participantRepo.save(participant);
-				participantEntityID = participant[EntityId];
+				participant = await createNewParticipant(participant);
+				participantEntityID = getParticipantId(participant);
 
 				socket.to(classId).emit("newParticipant", participant);
 
@@ -221,10 +216,11 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 	socket.on("leaveClass", async () => {
 		const { classId } = socket.handshake.auth;
-		const participant = await participantRepo.fetch(participantEntityID);
-		delete participant.class;
-		delete participant.student;
-		await participantRepo.save(participant);
+		const participant = await getParticipantById(participantEntityID);
+
+		socket.to(classId).emit("leftClass", participant);
+		await deleteParticipant(participant);
+
 		socket.leave(classId);
 		socket.disconnect();
 	});
@@ -240,10 +236,10 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 		if (!isProducer) {
 			consumerTransport.close();
-			const participant = await participantRepo.fetch(participantEntityID);
-			delete participant.class;
-			delete participant.student;
-			await participantRepo.save(participant);
+			const participant = await getParticipantById(participantEntityID);
+
+			io.to(classId).emit("leftClass", participant);
+			await deleteParticipant(participant);
 		}
 	});
 
@@ -262,12 +258,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 	});
 
 	socket.on("getParticipants", async (cb) => {
-		const participants = await participantRepo
-			.search()
-			.where("class")
-			.eq(classId)
-			.return.all();
-
+		const participants = await getClassParticioants(classId);
 		cb({ participants });
 	});
 }
