@@ -51,6 +51,12 @@ const studentSchema = new Schema(
 	{ timestamps: true }
 );
 
+studentSchema.post("save", (doc, next) => {
+	doc.populate("department").then(() => {
+		next();
+	});
+});
+
 const StudentModel = dbConnection.model("student", studentSchema);
 
 export default StudentModel;
