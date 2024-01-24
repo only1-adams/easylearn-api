@@ -16,8 +16,8 @@ let worker;
 let router;
 
 const options = {
-	key: fs.readFileSync("./localhost-key.pem"),
-	cert: fs.readFileSync("./localhost.pem"),
+	key: fs.readFileSync("./64.23.162.191-key.pem"),
+	cert: fs.readFileSync("./64.23.162.191.pem"),
 };
 
 const server = https.createServer(options, app);
