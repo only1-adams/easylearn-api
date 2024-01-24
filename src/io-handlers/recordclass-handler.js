@@ -261,4 +261,6 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		const participants = await getClassParticipants(classId);
 		cb({ participants });
 	});
+
+	socket.on("startLiveRecord");
 }

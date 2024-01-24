@@ -32,6 +32,7 @@ export const getParticipantById = function (participantEntityID) {
 export const deleteParticipant = async function (participant) {
 	delete participant.class;
 	delete participant.student;
+	delete participant.id;
 	return participantRepo.save(participant);
 };
 
