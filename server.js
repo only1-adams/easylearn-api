@@ -24,7 +24,7 @@ const server = https.createServer(options, app);
 
 const io = new Server(server, {
 	cors: {
-		origin: [process.env.CLIENT_BASE_URL],
+		origin: [process.env.CLIENT_BASE_URL, "http://localhost:3000"],
 	},
 });
 
