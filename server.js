@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import http from "http";
+import https from "https";
 import { Server } from "socket.io";
 import app from "./src/app.js";
 import dbConnection from "./db-connection.js";
@@ -14,7 +14,12 @@ config();
 let worker;
 let router;
 
-const server = http.createServer(app);
+const options = {
+	key: fs.readFileSync("./localhost-key.pem"),
+	cert: fs.readFileSync("./localhost.pem"),
+};
+
+const server = https.createServer(options, app);
 
 const io = new Server(server, {
 	cors: {
