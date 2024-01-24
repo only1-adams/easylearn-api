@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import https from "https";
+import fs from "fs";
 import { Server } from "socket.io";
 import app from "./src/app.js";
 import dbConnection from "./db-connection.js";
