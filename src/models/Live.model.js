@@ -12,10 +12,10 @@ const liveSchema = new Schema(
 			index: true,
 		},
 
-		producerId: {
-			type: String,
+		producers: {
+			type: [String],
+			max: 2,
 			required: true,
-			index: true,
 		},
 	},
 	{ timestamps: true }

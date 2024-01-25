@@ -1,6 +1,5 @@
 import { config } from "dotenv";
-import http from "https";
-
+import http from "http";
 import { Server } from "socket.io";
 import app from "./src/app.js";
 import dbConnection from "./db-connection.js";
@@ -19,7 +18,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
 	cors: {
-		origin: [process.env.CLIENT_BASE_URL, "http://localhost:3000"],
+		origin: [process.env.CLIENT_BASE_URL],
 	},
 });
 

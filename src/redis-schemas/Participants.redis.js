@@ -37,7 +37,7 @@ export const deleteParticipant = async function (participant) {
 };
 
 export const getClassParticipants = async function (classId) {
-	return participantRepo.search().where("class").eq(classId).return.all();
+	return participantRepo?.search().where("class").eq(classId).return.all();
 };
 
 export default initRedisSchema;
