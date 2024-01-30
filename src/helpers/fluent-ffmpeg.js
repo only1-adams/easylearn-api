@@ -73,6 +73,8 @@ class FFmpeg {
 			const buffer = Buffer.concat(instance.accumulatedChunks);
 			const bufferSize = buffer.length;
 
+			console.log(bufferSize, "new");
+
 			if (bufferSize >= instance.TARGET_SIZE) {
 				jobBuffers.set(`${this.classId}${partNumber}`, buffer);
 

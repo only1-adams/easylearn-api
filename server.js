@@ -28,13 +28,13 @@ io.of("/live/record").on("connection", (socket) => {
 });
 
 dbConnection.once("open", async () => {
-	server.listen(process.env.PORT || 8000);
 	worker = await createWorker();
 	router = await createRouter(worker);
 	await redis.connect();
 	await initRedisSchema();
 	activationMailWorker.run();
 	recordWorker.run();
+	server.listen(process.env.PORT || 8000);
 	console.log("connected");
 });
 
