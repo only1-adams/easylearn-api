@@ -17,6 +17,21 @@ export default class StudentService {
 		return student.save();
 	}
 
+	updateStudent(studentId, data) {
+		if (!studentId) {
+			throwError("Student id must be provided", 422);
+		}
+
+		if (!data) {
+			throwError("Student data must be provided", 422);
+		}
+
+		return this.Student.findByIdAndUpdate(studentId, data, {
+			runValidators: true,
+			returnDocument: "after",
+		});
+	}
+
 	getStudentByUserId(userId) {
 		if (!userId) {
 			throwError("User Id must be provided", 422);
@@ -24,6 +39,10 @@ export default class StudentService {
 
 		return this.Student.findOne({ user: userId }).populate({
 			path: "department",
+			populate: {
+				path: "faculty",
+				populate: "university",
+			},
 		});
 	}
 
@@ -61,5 +80,27 @@ export default class StudentService {
 		});
 
 		return attendance.save();
+	}
+
+	getStudentClassRecords(departmentId, level) {
+		if (!departmentId) {
+			throwError("Department Id must be provided", 422);
+		}
+
+		if (!level) {
+			throwError("Level must be provided", 422);
+		}
+
+		return this.Class.find({
+			status: "finished",
+			recordUrl: { $exists: true, $ne: null },
+		})
+			.populate({
+				path: "creator",
+				match: { department: departmentId, level },
+			})
+			.sort({
+				updatedAt: -1,
+			});
 	}
 }

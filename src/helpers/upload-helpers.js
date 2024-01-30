@@ -23,37 +23,12 @@ const getUploadURL = async (key, contentType) => {
 	return url;
 };
 
-export const uploadInfluencerPic = async function (
+export const uploadProfilePicture = async function (
 	fileType,
 	fileExtension,
-	userId
+	studentId
 ) {
-	const key = `influencers/${userId}/profile-pic.${fileExtension}`;
-
-	const url = await getUploadURL(key, `${fileType}/${fileExtension}`);
-
-	return { url, key };
-};
-
-export const uploadBrandPic = async function (
-	fileType,
-	fileExtension,
-	user,
-	brandId
-) {
-	const key = `brands/${user.userId}/${brandId}/profile-pic.${fileExtension}`;
-
-	const url = await getUploadURL(key, `${fileType}/${fileExtension}`);
-
-	return { url, key };
-};
-
-export const uploadConversationMedia = async (
-	fileType,
-	fileExtension,
-	conversationId
-) => {
-	const key = `conversations/${conversationId}/${v4()}-media.${fileExtension}`;
+	const key = `profile/profile-pic-${v4()}.${fileExtension}`;
 
 	const url = await getUploadURL(key, `${fileType}/${fileExtension}`);
 

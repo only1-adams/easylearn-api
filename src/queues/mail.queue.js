@@ -1,7 +1,10 @@
 import { config } from "dotenv";
 import { Queue, Worker } from "bullmq";
 import sgMail from "@sendgrid/mail";
-import { generateActivationEmail } from "../helpers/mail.js";
+import {
+	generateActivationEmail,
+	generateProfileUpdateEmail,
+} from "../helpers/mail.js";
 import redisConnectionConfig from "../../redis-connection.js";
 
 config();
@@ -15,22 +18,42 @@ const activationMailQueue = new Queue("activationMail", {
 	defaultJobOptions: {
 		removeOnComplete: true,
 		removeOnFail: true,
+		attempts: 3,
+		backoff: {
+			type: "exponential",
+			delay: 1000,
+		},
 	},
 });
 
 export const activationMailWorker = new Worker(
 	"activationMail",
 	async (job) => {
+		console.log("Processing");
+		const { action } = job.data;
+		const subject =
+			action === "activation"
+				? "Action Required: Activate your Easylearn account"
+				: action === "email"
+				? "Action Required: Request to change email"
+				: action === "password"
+				? "Action Required: Request to Change Password"
+				: "";
+
 		const msg = {
 			to: job.data.email,
 			from: "adams.muhammed@arazara.com.ng", // Use the email address or domain you verified above
-			subject: "Action Required: Activate your Easylearn account",
-			html: generateActivationEmail(job.data.activationCode),
+			subject: subject,
+			html:
+				action === "activation"
+					? generateActivationEmail(job.data.activationCode)
+					: generateProfileUpdateEmail(job.data.activationCode, action),
 		};
 
 		try {
 			await sgMail.send(msg);
 		} catch (error) {
+			console.log(error);
 			throw new Error();
 		}
 

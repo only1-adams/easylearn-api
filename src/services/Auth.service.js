@@ -49,6 +49,7 @@ export default class AuthService {
 			{
 				email,
 				activationCode: activationCode,
+				action: "activation",
 			},
 			{ lifo: true, removeOnComplete: true, removeOnFail: true }
 		);
@@ -67,6 +68,116 @@ export default class AuthService {
 		}
 
 		user.activated = true;
+
+		await user.save();
+	}
+
+	async resendActivationCode(userId) {
+		const user = await this.UserService.findUserByID(userId);
+		const activationCode = user.activationCode;
+
+		await activationMailQueue.add(
+			user._id,
+			{
+				email: user.email,
+				activationCode: activationCode,
+				action: "activation",
+			},
+			{ lifo: true, removeOnComplete: true, removeOnFail: true }
+		);
+
+		return true;
+	}
+
+	async changeEmail(userId, newEmail) {
+		const user = await this.UserService.findUserByID(userId);
+		const usedEmail = await this.UserService.findUserByEmail(newEmail).exec();
+
+		console.log(usedEmail);
+
+		if (usedEmail) {
+			throwError("Email already registered", 400);
+		}
+
+		const activationCodeUID = new ShortUniqueId({
+			length: 4,
+			dictionary: "number",
+		});
+
+		const code = activationCodeUID.rnd();
+
+		const hashedCode = await hashPassword(code);
+
+		user.mailChangeCode = hashedCode;
+
+		await activationMailQueue.add(
+			user._id,
+			{
+				email: user.email,
+				activationCode: code,
+				action: "email",
+			},
+			{ lifo: true, removeOnComplete: true, removeOnFail: true }
+		);
+
+		return user.save();
+	}
+
+	async changePassword(userId) {
+		const user = await this.UserService.findUserByID(userId);
+
+		const activationCodeUID = new ShortUniqueId({
+			length: 4,
+			dictionary: "number",
+		});
+
+		const code = activationCodeUID.rnd();
+
+		const hashedCode = await hashPassword(code);
+
+		user.passwordChangeCode = hashedCode;
+
+		await activationMailQueue.add(
+			user._id,
+			{
+				email: user.email,
+				activationCode: code,
+				action: "password",
+			},
+			{ lifo: true, removeOnComplete: true, removeOnFail: true }
+		);
+
+		return user.save();
+	}
+
+	async verifyEmailChange(userId, code, newEmail) {
+		const user = await this.UserService.findUserByID(userId);
+		console.log(code);
+		try {
+			await comparePassword(String(code), user.mailChangeCode);
+		} catch (error) {
+			throwError("Invalid activation code", 422);
+			return;
+		}
+
+		user.email = newEmail;
+
+		await user.save();
+	}
+
+	async verifyPasswordChange(userId, code, newPassword) {
+		const user = await this.UserService.findUserByID(userId);
+
+		try {
+			await comparePassword(String(code), user.passwordChangeCode);
+		} catch (error) {
+			throwError("Invalid activation code", 422);
+			return;
+		}
+
+		const hashedPassword = await hashPassword(newPassword);
+
+		user.password = hashedPassword;
 
 		await user.save();
 	}

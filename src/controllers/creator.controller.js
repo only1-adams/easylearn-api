@@ -170,3 +170,12 @@ export const getClassMessages = asyncCatch(async (req, res) => {
 
 	res.status(200).json({ messages });
 });
+
+export const updateClass = asyncCatch(async (req, res) => {
+	const data = validateRequestBody(req);
+	const classId = req.params.classId;
+
+	const classData = await creatorService.updateClass(classId, data);
+
+	res.status(200).json({ message: "Class updated successfully", classData });
+});

@@ -6,6 +6,7 @@ import dbConnection from "./db-connection.js";
 import recordClassHandler from "./src/io-handlers/recordclass-handler.js";
 import { createWorker, createRouter } from "./src/helpers/mediasoup-helpers.js";
 import { activationMailWorker } from "./src/queues/mail.queue.js";
+import { recordWorker } from "./src/queues/live-record.queue.js";
 import { redis } from "./redis-connection.js";
 import initRedisSchema from "./src/redis-schemas/Participants.redis.js";
 
@@ -33,6 +34,7 @@ dbConnection.once("open", async () => {
 	await redis.connect();
 	await initRedisSchema();
 	activationMailWorker.run();
+	recordWorker.run();
 	console.log("connected");
 });
 

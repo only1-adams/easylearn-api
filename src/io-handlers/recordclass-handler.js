@@ -41,7 +41,7 @@ const liveClasses = new Map();
 export default async function recordClassHandler(io, socket, worker, router) {
 	const { classId, isProducer } = socket.handshake.auth;
 	socket.join(classId);
-	socket.consumerIds = [];
+	socket.transportIds = [];
 
 	const liveClass = new LiveClass(classId);
 	liveClasses.set(classId, liveClass);
@@ -66,6 +66,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 			const transport = await createTransport("webRtc", router);
 
 			liveClass.addTransport(transport);
+			socket.transportIds.push(transport.id);
 
 			callback({
 				transportId: transport.id,
@@ -164,8 +165,6 @@ export default async function recordClassHandler(io, socket, worker, router) {
 					consumer?.close();
 				});
 
-				socket.consumerIds.push(consumer.id);
-
 				callback({
 					id: consumer.id,
 					kind: consumer.kind,
@@ -191,7 +190,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 			let participant = {
 				class: classId,
 				student: student,
-				id: randomUUID(),
+				id: randomUUID(), // unique id to identify a participant
 			};
 
 			participant = await createNewParticipant(participant);
@@ -240,7 +239,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		}
 	});
 
-	socket.on("endLiveClass", async (data) => {
+	socket.on("endLiveClass", async (data, callback) => {
 		const { classId } = socket.handshake.auth;
 		const { transportId, audioTransportId } = data;
 
@@ -251,47 +250,78 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		await liveService.deleteLiveClass(classId);
 		await creatorService.updateClass(classId, { status: "finished" });
 
+		const participants = await getClassParticipants(classId);
+
+		if (participants) {
+			await Promise.all(
+				participants.map(async (participant) => {
+					const id = getParticipantId(participant);
+					await deleteParticipant(id);
+					return true;
+				})
+			);
+		}
+
+		liveClasses.delete(classId);
+
 		transport?.close();
 		audioTransport?.close();
+		socket.transportIds = [];
 		socket.to(classId).emit("classEnded");
-		// socket.disconnect();
+		callback({ message: "ended" });
 	});
 
-	socket.on("leaveClass", async () => {
+	socket.on("leaveClass", async (data) => {
 		const { classId } = socket.handshake.auth;
+		const { transportId, audioTransportId } = data;
+
+		const liveClass = liveClasses.get(classId);
+		const transport = liveClass.getTransport(transportId);
+		const audioTransport = liveClass.getTransport(audioTransportId);
 		const participant = await getParticipantById(participantEntityID);
 
 		socket.to(classId).emit("leftClass", participant);
-		await deleteParticipant(participant);
+		await deleteParticipant(participantEntityID);
+		participantEntityID = null;
 
+		transport?.close();
+		audioTransport?.close();
+
+		socket.transportIds = [];
 		socket.leave(classId);
 		socket.disconnect();
 	});
 
 	socket.on("disconnect", async () => {
 		const { classId } = socket.handshake.auth;
+		const liveClass = liveClasses.get(classId);
+
+		if (liveClass && socket.transportIds.length > 0) {
+			socket.transportIds.forEach((transportId) => {
+				const transport = liveClass.getTransport(transportId);
+				transport?.close();
+			});
+		}
 
 		if (isProducer) {
-			const liveClass = liveClasses.get(classId);
+			if (liveClass) {
+				await liveService.deleteLiveClass(classId);
+				await creatorService.updateClass(classId, { status: "finished" });
+				await liveClass.process?.kill();
+				liveClass.process = undefined;
+				liveClass.remotePorts.forEach((port) => releasePort(port));
 
-			await liveService.deleteLiveClass(classId);
-			await creatorService.updateClass(classId, { status: "finished" });
-
-			liveClass.producers.forEach((producer) => producer.close());
-			io.to(classId).emit("classEnded");
+				liveClass.producers.forEach((producer) => producer.close());
+				liveClasses.delete(classId);
+				io.to(classId).emit("classEnded");
+			}
 		}
 
 		if (!isProducer) {
-			const liveClass = liveClasses.get(classId);
-
-			if (socket.consumerIds) {
-				socket.consumerIds.forEach((consumerId) => {
-					const consumer = liveClass.getConsumer(consumerId);
-					consumer.close();
-				});
+			if (participantEntityID) {
 				const participant = await getParticipantById(participantEntityID);
 				io.to(classId).emit("leftClass", participant);
-				await deleteParticipant(participant);
+				await deleteParticipant(participantEntityID);
 			}
 		}
 	});
@@ -340,13 +370,17 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 			// Create the mediasoup RTP Transport used to send media to the GStreamer process
 			for (const producer of producers) {
-				const rtpTransport = await createTransport("plain", router);
+				const rtpTransport = await createTransport("plain", router, {
+					appData: { forRecord: true },
+				});
+
 				const { data: info, consumer } = await publishProducerRtpStream(
 					liveClass,
 					producer,
 					rtpTransport,
 					router
 				);
+
 				console.log(producer.kind, info);
 				recordInfo[producer.kind] = info;
 
@@ -357,7 +391,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 			}
 
 			recordInfo.fileName = Date.now().toString();
-			liveClass.process = new FFmpeg(recordInfo);
+			liveClass.process = new FFmpeg(recordInfo, classId);
 
 			callback({ message: "done" });
 		} catch (error) {
@@ -373,7 +407,7 @@ export default async function recordClassHandler(io, socket, worker, router) {
 		const { classId } = socket.handshake.auth;
 		const liveClass = liveClasses.get(classId);
 
-		liveClass.process.kill();
+		liveClass.process?.kill();
 		liveClass.process = undefined;
 		liveClass.remotePorts.forEach((port) => releasePort(port));
 		callback({ message: "done" });

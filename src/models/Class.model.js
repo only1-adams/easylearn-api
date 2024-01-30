@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-const classSchema = new Schema(
+export const classSchema = new Schema(
 	{
 		creator: {
 			type: Schema.Types.ObjectId,
@@ -34,7 +34,10 @@ const classSchema = new Schema(
 			default: "ongoing",
 		},
 
-		recordUrl: String,
+		recordUrl: {
+			type: String,
+			index: true,
+		},
 	},
 	{ timestamps: true }
 );

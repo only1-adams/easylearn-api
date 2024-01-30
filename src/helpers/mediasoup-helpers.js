@@ -32,13 +32,15 @@ export const createTransport = async (transportType, router, options) => {
 
 	switch (transportType) {
 		case "webRtc":
-			return await router.createWebRtcTransport(
-				mediasoupConfig.webRtcTransport
-			);
+			return await router.createWebRtcTransport({
+				...mediasoupConfig.webRtcTransport,
+				...options,
+			});
 		case "plain":
-			return await router.createPlainTransport(
-				mediasoupConfig.plainRtpTransport
-			);
+			return await router.createPlainTransport({
+				...mediasoupConfig.plainRtpTransport,
+				...options,
+			});
 	}
 };
 

@@ -44,6 +44,19 @@ router.post(
 	createClass
 );
 
+router.put(
+	"/class",
+	isAuthenticated,
+	[
+		body("creator").optional().isString(),
+		body("courseTitle").optional().isString(),
+		body("courseCode").optional().isString(),
+		body("lecturerName").optional().isString(),
+		body("recordUrl").optional().isString(),
+	],
+	createClass
+);
+
 router.get("/me", isAuthenticated, getCreatorDetails);
 
 router.get("/uploaded-classes/:creatorId", isAuthenticated, getCreatorClasses);

@@ -1,9 +1,11 @@
+import { config } from "dotenv";
 import mediasoupConfig from "../utils/mediasoup.config.js";
 import { Readable } from "stream";
 
+config();
+
 const MIN_PORT = 20000;
 const MAX_PORT = 30000;
-const TIMEOUT = 400;
 
 const takenPortSet = new Set();
 
@@ -67,9 +69,9 @@ export const createSdpText = (rtpParameters) => {
 	}
 
 	return `v=0
-  o=- 0 0 IN IP4 127.0.0.1
+  o=- 0 0 IN IP4 ${process.env.LISTEN_IPS}
   s=FFmpeg
-  c=IN IP4 127.0.0.1
+  c=IN IP4 ${process.env.LISTEN_IPS}
   t=0 0
   m=video ${kind.video.remoteRtpPort} RTP/AVP ${videoCodecInfo.payloadType} 
   a=rtpmap:${videoCodecInfo.payloadType} ${videoCodecInfo.codecName}/${videoCodecInfo.clockRate}
@@ -79,19 +81,6 @@ export const createSdpText = (rtpParameters) => {
   a=sendonly
   `;
 };
-
-// return `v=0
-//   o=- 0 0 IN IP4 127.0.0.1
-//   s=FFmpeg
-//   c=IN IP4 127.0.0.1
-//   t=0 0
-//   m=video ${kind.video.remoteRtpPort} RTP/AVP ${videoCodecInfo.payloadType}
-//   a=rtpmap:${videoCodecInfo.payloadType} ${videoCodecInfo.codecName}/${videoCodecInfo.clockRate}
-//   a=sendonly
-//   m=audio ${kind.audio.remoteRtpPort} RTP/AVP ${audioCodecInfo.payloadType}
-//   a=rtpmap:${audioCodecInfo.payloadType} ${audioCodecInfo.codecName}/${audioCodecInfo.clockRate}/${audioCodecInfo.channels}
-//   a=sendonly
-//   `;
 
 export const publishProducerRtpStream = async (
 	liveClass,
@@ -116,7 +105,7 @@ export const publishProducerRtpStream = async (
 
 	// Connect the mediasoup RTP transport to the ports used by GStreamer
 	await transport.connect({
-		ip: "127.0.0.1",
+		ip: `${process.env.LISTEN_IPS}`,
 		port: remoteRtpPort,
 		rtcpPort: remoteRtcpPort,
 	});

@@ -30,6 +30,10 @@ const userSchema = new Schema(
 		},
 
 		activationCode: String,
+
+		mailChangeCode: String,
+
+		passwordChangeCode: String,
 	},
 	{ timestamps: true }
 );

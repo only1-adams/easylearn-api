@@ -29,11 +29,8 @@ export const getParticipantById = function (participantEntityID) {
 	return participantRepo.fetch(participantEntityID);
 };
 
-export const deleteParticipant = async function (participant) {
-	delete participant.class;
-	delete participant.student;
-	delete participant.id;
-	return participantRepo.save(participant);
+export const deleteParticipant = async function (participantEntityID) {
+	return participantRepo.remove(participantEntityID);
 };
 
 export const getClassParticipants = async function (classId) {

@@ -58,7 +58,7 @@ export default class CreatorService {
 
 		const updatedClass = this.Class.findByIdAndUpdate(classId, data, {
 			runValidators: true,
-			returnDocumentAfter: true,
+			returnDocument: "after",
 		});
 
 		return updatedClass;
