@@ -1,9 +1,20 @@
-import { redis } from "../../redis-connection.js";
+import { createClient } from "redis";
+
 import { Schema, Repository, EntityId } from "redis-om";
+
+const redis = createClient({
+	socket: {
+		host: process.env.REDIS_HOST,
+		port: Number(process.env.REDIS_PORT),
+	},
+	password: "easylearngangan",
+});
 
 export let participantRepo;
 
 async function initRedisSchema() {
+	await redis.connect();
+	
 	const participantSchema = new Schema("participant", {
 		class: { type: "string" },
 		student: { type: "string" },

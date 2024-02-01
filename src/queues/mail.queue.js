@@ -5,16 +5,15 @@ import {
 	generateActivationEmail,
 	generateProfileUpdateEmail,
 } from "../helpers/mail.js";
-import redisConnectionConfig from "../../redis-connection.js";
+
+import redis from "../../redis-connection.js";
 
 config();
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const connection = redisConnectionConfig;
-
 const activationMailQueue = new Queue("activationMail", {
-	connection: { ...connection.socket, password: connection.password },
+	connection: redis,
 	defaultJobOptions: {
 		removeOnComplete: true,
 		removeOnFail: true,
@@ -61,7 +60,7 @@ export const activationMailWorker = new Worker(
 	},
 	{
 		autorun: false,
-		connection: { ...connection.socket, password: connection.password },
+		connection: redis,
 		removeOnComplete: true,
 		removeOnFail: true,
 	}

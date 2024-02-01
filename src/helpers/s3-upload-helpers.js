@@ -1,6 +1,5 @@
 import { config } from "dotenv";
 import {
-	S3Client,
 	CreateMultipartUploadCommand,
 	UploadPartCommand,
 	CompleteMultipartUploadCommand,
@@ -9,9 +8,7 @@ import {
 
 config();
 
-const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
-
-export const initiateMultipartUpload = async function (key) {
+export const initiateMultipartUpload = async function (key, s3Client) {
 	const uploadParams = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Key: key,
@@ -26,25 +23,37 @@ export const initiateMultipartUpload = async function (key) {
 	return multiUploadParams;
 };
 
-export const uploadPart = async (chunk, partNumber, uploadId, key) => {
-	const uploadPartParams = {
-		Bucket: process.env.S3_BUCKET_NAME,
-		Key: key,
-		PartNumber: partNumber,
-		UploadId: uploadId,
-		Body: chunk,
-	};
+export const uploadPart = async (
+	chunk,
+	partNumber,
+	uploadId,
+	key,
+	s3Client
+) => {
+	try {
+		const uploadPartParams = {
+			Bucket: process.env.S3_BUCKET_NAME,
+			Key: key,
+			PartNumber: partNumber,
+			UploadId: uploadId,
+			Body: chunk,
+		};
 
-	const uploadPartCommand = new UploadPartCommand(uploadPartParams);
+		console.log("initiating s3 upload", partNumber);
 
-	const partParams = await s3Client.send(uploadPartCommand);
+		const uploadPartCommand = new UploadPartCommand(uploadPartParams);
 
-	console.log(partParams, chunk.length, "uppPart");
+		const partParams = await s3Client.send(uploadPartCommand);
 
-	return partParams;
+		console.log("done with s3 upload", partNumber);
+
+		return partParams;
+	} catch (error) {
+		console.log(error, "inside upload");
+	}
 };
 
-export const completeUpload = async (key, uploadId, parts) => {
+export const completeUpload = async (key, uploadId, parts, s3Client) => {
 	const completeMultipartUploadParams = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Key: key,

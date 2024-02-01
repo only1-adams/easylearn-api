@@ -1,13 +1,15 @@
 import { config } from "dotenv";
 import Ffmpeg from "fluent-ffmpeg";
 import { createSdpText, convertStringToStream } from "./live-record-helpers.js";
-import { EventEmitter } from "events";
 import { Writable } from "stream";
 import recordQueue from "../queues/live-record.queue.js";
 import { initiateMultipartUpload } from "./s3-upload-helpers.js";
-import { jobBuffers } from "../queues/live-record.queue.js";
+import { S3Client } from "@aws-sdk/client-s3";
+import recordedVideoUploader from "../queues/live-record.queue.js";
 
 config();
+
+const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
 
 class FFmpeg {
 	constructor(rtpParameters, classId) {
@@ -16,7 +18,9 @@ class FFmpeg {
 		this.process = null; // To keep track of the FFmpeg process
 		this.uploadId = null; // To store the ID of the multipart upload
 		this.accumulatedChunks = [];
-		this.TARGET_SIZE = 5 * 1024 * 1024;
+		this.partNumber = 0;
+		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
+
 		this.Writable = new Writable({
 			highWaterMark: 10 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
@@ -24,10 +28,11 @@ class FFmpeg {
 				this.processChunk(chunk, encoding, callback, instance);
 			},
 		});
+
 		this._createProcess();
 	}
 
-	_createProcess() {
+	async _createProcess() {
 		const sdpString = createSdpText(this.rtpParameters);
 		const sdpStream = convertStringToStream(sdpString);
 
@@ -42,53 +47,47 @@ class FFmpeg {
 			.videoCodec("copy")
 			.audioCodec("copy")
 			.outputFormat("webm")
+			.on("start", async () => {
+				const response = await initiateMultipartUpload(
+					`record-${this.classId}.webm`,
+					s3Client
+				); // prepare to upload to S3
+
+				this.uploadId = response.UploadId;
+
+				this.uploader = new recordedVideoUploader(
+					response.UploadId,
+					this.classId,
+					s3Client
+				);
+
+				console.log("Multipart upload initiated. Upload ID:", this.uploadId);
+			})
 			.on("error", async (err, stdout, stderr) => {
 				console.error("Error:", err);
 				console.error("ffmpeg::process::stdout", stdout);
 				console.error("ffmpeg::process::stderr", stderr);
-			})
-			.on("start", async () => {
-				const response = await initiateMultipartUpload(
-					`record-${this.classId}.webm`
-				); // prepare to upload to S3
-
-				this.uploadId = response.UploadId;
-				this.partNumber = 1;
-
-				console.log("Multipart upload initiated. Upload ID:", this.uploadId);
 			})
 			.pipe(this.Writable, { end: true }); // pipe output to writable stream
 	}
 
 	async processChunk(chunk, encoding, callback, instance) {
 		try {
-			if (!instance.uploadId) {
-				return;
-			}
-
-			const partNumber = instance.partNumber;
-			const uploadId = instance.uploadId;
-
 			instance.accumulatedChunks.push(chunk);
 			const buffer = Buffer.concat(instance.accumulatedChunks);
 			const bufferSize = buffer.length;
-
-			console.log(bufferSize, "new");
-
+			console.log(bufferSize);
 			if (bufferSize >= instance.TARGET_SIZE) {
-				jobBuffers.set(`${this.classId}${partNumber}`, buffer);
+				console.log(bufferSize, "in");
+				instance.partNumber += 1;
 
-				await recordQueue.add(`${this.classId}-${partNumber}`, {
-					type: "uploadPart",
-					partNumber: partNumber,
-					uploadId: uploadId,
-					key: `record-${this.classId}`,
-				});
+				instance.uploader.storeBuffer(
+					instance.partNumber,
+					buffer,
+					`record-${instance.classId}.webm`
+				);
 
 				instance.accumulatedChunks.length = 0;
-
-				instance.partNumber += 1;
-				console.log("here");
 			}
 
 			callback();
@@ -103,19 +102,13 @@ class FFmpeg {
 			return;
 		}
 
-		if (this.process) {
-			this.Writable.end();
-			await recordQueue.add(`completed-${this.classId}`, {
-				type: "uploadComplete",
-				key: `record-${this.classId}.webm`,
-				uploadId: this.uploadId,
-				totalUploads: this.partNumber,
-				classId: this.classId,
-			});
-			this.process.end();
-			// this.process.destroy();
-			// this.Writable.end();
-		}
+		console.log("end");
+		await this.uploader.complete(
+			this.partNumber,
+			`record-${this.classId}.webm`
+		);
+		this.process.end();
+		this.Writable.end();
 	}
 }
 

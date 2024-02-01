@@ -6,8 +6,7 @@ import dbConnection from "./db-connection.js";
 import recordClassHandler from "./src/io-handlers/recordclass-handler.js";
 import { createWorker, createRouter } from "./src/helpers/mediasoup-helpers.js";
 import { activationMailWorker } from "./src/queues/mail.queue.js";
-import { recordWorker } from "./src/queues/live-record.queue.js";
-import { redis } from "./redis-connection.js";
+import redis from "./redis-connection.js";
 import initRedisSchema from "./src/redis-schemas/Participants.redis.js";
 
 config();
@@ -30,12 +29,25 @@ io.of("/live/record").on("connection", (socket) => {
 dbConnection.once("open", async () => {
 	worker = await createWorker();
 	router = await createRouter(worker);
-	await redis.connect();
-	await initRedisSchema();
-	activationMailWorker.run();
-	recordWorker.run();
-	server.listen(process.env.PORT || 8000);
-	console.log("connected");
+	redis.connect(async () => {
+		await initRedisSchema();
+		activationMailWorker.run();
+		server.listen(process.env.PORT || 8000);
+		console.log("connected");
+	});
 });
+
+const gracefulShutdown = async (signal) => {
+	console.log(`Received ${signal}, closing server...`);
+	await activationMailWorker.close();
+
+	await redis.quit();
+	// Other asynchronous closings
+	process.exit(0);
+};
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
 // 52.41.36.82,54.191.253.12,44.226.122.3
