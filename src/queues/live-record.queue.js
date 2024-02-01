@@ -19,9 +19,9 @@ const creatorService = new CreatorService(
 class recordedVideoUploader {
 	constructor(uploadId, classId, s3Client) {
 		this.uploadId = uploadId;
-		this.uploadedParts = new Map();
 		this.s3Client = s3Client;
 		this.classId = classId;
+		this.uploadedParts = new Map();
 	}
 
 	async storeBuffer(partNumber, buffer, key) {
@@ -83,6 +83,7 @@ class recordedVideoUploader {
 					key,
 					Array.from(this.uploadedParts.values())
 				);
+				this.uploadedParts.clear();
 				await creatorService.updateClass(this.classId, { recordUrl: key });
 				return true;
 			} else {

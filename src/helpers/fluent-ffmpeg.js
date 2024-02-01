@@ -2,7 +2,6 @@ import { config } from "dotenv";
 import Ffmpeg from "fluent-ffmpeg";
 import { createSdpText, convertStringToStream } from "./live-record-helpers.js";
 import { Writable } from "stream";
-import recordQueue from "../queues/live-record.queue.js";
 import { initiateMultipartUpload } from "./s3-upload-helpers.js";
 import { S3Client } from "@aws-sdk/client-s3";
 import recordedVideoUploader from "../queues/live-record.queue.js";
@@ -22,7 +21,7 @@ class FFmpeg {
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
 
 		this.Writable = new Writable({
-			highWaterMark: 10 * 1024 * 1024,
+			highWaterMark: 50 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
 				const instance = this;
 				this.processChunk(chunk, encoding, callback, instance);
@@ -103,6 +102,17 @@ class FFmpeg {
 		}
 
 		console.log("end");
+
+		if (this.accumulatedChunks.length > 0) {
+			this.partNumber += 1;
+			const buffer = Buffer.concat(this.accumulatedChunks);
+			this.uploader.storeBuffer(
+				this.partNumber,
+				buffer,
+				`record-${this.classId}.webm`
+			);
+		}
+
 		await this.uploader.complete(
 			this.partNumber,
 			`record-${this.classId}.webm`
