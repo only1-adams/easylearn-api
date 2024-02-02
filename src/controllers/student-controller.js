@@ -97,7 +97,9 @@ export const getStudentRecordedClass = asyncCatch(async (req, res) => {
 		student.level
 	);
 
-	res.status(200).json({ recordedClasses });
+	const filteredClasses = recordedClasses.filter((c) => c.creator !== null);
+
+	res.status(200).json({ recordedClasses: filteredClasses });
 });
 
 export const uploadProfilePic = asyncCatch(async (req, res) => {

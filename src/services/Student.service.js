@@ -97,7 +97,10 @@ export default class StudentService {
 		})
 			.populate({
 				path: "creator",
-				match: { department: departmentId, level },
+				match: {
+					department: departmentId,
+					level,
+				},
 			})
 			.sort({
 				updatedAt: -1,
