@@ -159,7 +159,7 @@ export const getDepartmentStudents = asyncCatch(async (req, res) => {
 
 	const students = await studentService.getDepartmentStudents(
 		departmentId,
-		+level
+		Number(level)
 	);
 
 	res.status(200).json({ students });
