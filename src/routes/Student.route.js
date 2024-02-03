@@ -64,7 +64,11 @@ router.post("/starred/:classId", isAuthenticated, createStarredClass);
 
 router.delete("/starred/:classId", isAuthenticated, removeStarredClass);
 
-router.get("/department/:department", isAuthenticated, getDepartmentStudents);
+router.get(
+	"/department/:department/:level",
+	isAuthenticated,
+	getDepartmentStudents
+);
 
 const StudentRoutes = router;
 
