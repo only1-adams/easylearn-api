@@ -155,8 +155,12 @@ export const removeStarredClass = asyncCatch(async (req, res) => {
 
 export const getDepartmentStudents = asyncCatch(async (req, res) => {
 	const departmentId = req.params.department;
+	const level = req.params.level;
 
-	const students = await studentService.getDepartmentStudents(departmentId);
+	const students = await studentService.getDepartmentStudents(
+		departmentId,
+		+level
+	);
 
 	res.status(200).json({ students });
 });

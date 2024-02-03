@@ -142,11 +142,11 @@ export default class StudentService {
 		});
 	}
 
-	getDepartmentStudents(departmentid) {
+	getDepartmentStudents(departmentid, level) {
 		if (!departmentid) {
 			throwError("department id must be provided", 422);
 		}
 
-		return this.Student.find({ department: departmentid });
+		return this.Student.find({ department: departmentid, level });
 	}
 }
