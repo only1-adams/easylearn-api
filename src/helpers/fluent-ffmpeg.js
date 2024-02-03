@@ -76,6 +76,7 @@ class FFmpeg {
 			const buffer = Buffer.concat(instance.accumulatedChunks);
 			const bufferSize = buffer.length;
 			console.log(bufferSize);
+
 			if (bufferSize >= instance.TARGET_SIZE) {
 				console.log(bufferSize, "in");
 				instance.partNumber += 1;
@@ -117,6 +118,7 @@ class FFmpeg {
 			this.partNumber,
 			`record-${this.classId}.webm`
 		);
+
 		this.process.end();
 		this.Writable.end();
 	}

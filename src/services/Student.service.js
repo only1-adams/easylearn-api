@@ -1,10 +1,11 @@
 import { throwError } from "../helpers/error-helpers.js";
 
 export default class StudentService {
-	constructor(StudentModel, ClassModel, AttendanceModel) {
+	constructor(StudentModel, ClassModel, AttendanceModel, StarredClassModel) {
 		this.Student = StudentModel;
 		this.Class = ClassModel;
 		this.Attendance = AttendanceModel;
+		this.StarredClass = StarredClassModel;
 	}
 
 	createStudent(studentDetails) {
@@ -105,5 +106,47 @@ export default class StudentService {
 			.sort({
 				updatedAt: -1,
 			});
+	}
+
+	getstarredClass(studentId) {
+		if (!studentId) {
+			throwError("Student id must be provided", 422);
+		}
+
+		return this.StarredClass.find({
+			student: studentId,
+		}).populate("class");
+	}
+
+	createStarredClass(studentId, classId) {
+		if (!studentId || !classId) {
+			throwError("Student and class id must be provided", 422);
+		}
+
+		const starred = new this.StarredClass({
+			student: studentId,
+			class: classId,
+		});
+
+		return starred.save();
+	}
+
+	removeStarred(studentId, classId) {
+		if (!studentId || !classId) {
+			throwError("Student and class id must be provided", 422);
+		}
+
+		return this.StarredClass.findOneAndDelete({
+			student: studentId,
+			class: classId,
+		});
+	}
+
+	getDepartmentStudents(departmentid) {
+		if (!departmentid) {
+			throwError("department id must be provided", 422);
+		}
+
+		return this.Student.find({ department: departmentid });
 	}
 }

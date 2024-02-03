@@ -2,11 +2,15 @@ import express from "express";
 import { body } from "express-validator";
 import isAuthenticated from "../middlewares/is-authenticated.js";
 import {
+	createStarredClass,
 	createStudent,
+	getDepartmentStudents,
+	getStarredClass,
 	getStudentLives,
 	getStudentProfile,
 	getStudentRecordedClass,
 	markAttendance,
+	removeStarredClass,
 	updateStudentProfile,
 	uploadProfilePic,
 } from "../controllers/student-controller.js";
@@ -53,6 +57,14 @@ router.post(
 	isAuthenticated,
 	uploadProfilePic
 );
+
+router.get("/starred", isAuthenticated, getStarredClass);
+
+router.post("/starred/:classId", isAuthenticated, createStarredClass);
+
+router.delete("/starred/:classId", isAuthenticated, removeStarredClass);
+
+router.get("/department/:department", isAuthenticated, getDepartmentStudents);
 
 const StudentRoutes = router;
 

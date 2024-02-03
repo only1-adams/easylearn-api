@@ -3,6 +3,7 @@ import validateRequestBody from "../utils/validate-request-body.js";
 import StudentModel from "../models/Student.model.js";
 import ClassModel from "../models/Class.model.js";
 import AttendanceModel from "../models/Attendance.model.js";
+import StarredClassModel from "../models/StarredClass.js";
 import StudentService from "../services/Student.service.js";
 import { throwError } from "../helpers/error-helpers.js";
 import { uploadProfilePicture } from "../helpers/upload-helpers.js";
@@ -10,7 +11,8 @@ import { uploadProfilePicture } from "../helpers/upload-helpers.js";
 const studentService = new StudentService(
 	StudentModel,
 	ClassModel,
-	AttendanceModel
+	AttendanceModel,
+	StarredClassModel
 );
 
 export const createStudent = asyncCatch(async (req, res) => {
@@ -70,7 +72,9 @@ export const getStudentLives = asyncCatch(async (req, res) => {
 		student.level
 	);
 
-	res.status(200).json({ lives });
+	const filteredClasses = lives.filter((c) => c.creator !== null);
+
+	res.status(200).json({ lives: filteredClasses });
 });
 
 export const markAttendance = asyncCatch(async (req, res) => {
@@ -116,4 +120,43 @@ export const uploadProfilePic = asyncCatch(async (req, res) => {
 	);
 
 	res.status(200).json({ url, key });
+});
+
+export const getStarredClass = asyncCatch(async (req, res) => {
+	const user = req.user;
+	const student = await studentService.getStudentByUserId(user._id);
+
+	const classes = await studentService.getstarredClass(student._id);
+
+	res.status(200).json({ classes: classes });
+});
+
+export const createStarredClass = asyncCatch(async (req, res) => {
+	const user = req.user;
+	const student = await studentService.getStudentByUserId(user._id);
+
+	const classId = req.params.classId;
+
+	await studentService.createStarredClass(student._id, classId);
+
+	res.status(200).json({ messsage: "Class starred successfully" });
+});
+
+export const removeStarredClass = asyncCatch(async (req, res) => {
+	const user = req.user;
+	const student = await studentService.getStudentByUserId(user._id);
+
+	const classId = req.params.classId;
+
+	await studentService.removeStarred(student._id, classId);
+
+	res.status(200).json({ messsage: "Class removed from starred" });
+});
+
+export const getDepartmentStudents = asyncCatch(async (req, res) => {
+	const departmentId = req.params.department;
+
+	const students = await studentService.getDepartmentStudents(departmentId);
+
+	res.status(200).json({ students });
 });
