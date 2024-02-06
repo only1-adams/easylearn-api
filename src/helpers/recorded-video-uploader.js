@@ -1,4 +1,5 @@
 import { config } from "dotenv";
+import { fork } from "node:child_process";
 import {
 	UploadPartCommand,
 	CompleteMultipartUploadCommand,
@@ -32,7 +33,7 @@ class recordedVideoUploader {
 				PartNumber: partNumber,
 			});
 		} catch (error) {
-			console.log(error);
+			console.log("upload error:", error);
 			this.storeBuffer(partNumber, buffer, key);
 		}
 	}

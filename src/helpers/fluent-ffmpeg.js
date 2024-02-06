@@ -4,7 +4,7 @@ import { createSdpText, convertStringToStream } from "./live-record-helpers.js";
 import { Writable } from "stream";
 import { initiateMultipartUpload } from "./s3-upload-helpers.js";
 import { S3Client } from "@aws-sdk/client-s3";
-import recordedVideoUploader from "../queues/live-record.queue.js";
+import recordedVideoUploader from "./recorded-video-uploader.js";
 
 config();
 
@@ -15,7 +15,7 @@ class FFmpeg {
 		this.rtpParameters = rtpParameters;
 		this.classId = classId;
 		this.process = null; // To keep track of the FFmpeg process
-		this.uploadId = null; // To store the ID of the multipart upload
+		this.uploadId = null; // To store the ID of the AWS S3 multipart upload
 		this.accumulatedChunks = [];
 		this.partNumber = 0;
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload

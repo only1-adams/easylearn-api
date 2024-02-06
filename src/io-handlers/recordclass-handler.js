@@ -266,6 +266,15 @@ export default async function recordClassHandler(io, socket, worker, router) {
 
 		transport?.close();
 		audioTransport?.close();
+
+		/// close other transports created for recording.
+		if (liveClass && socket.transportIds.length > 0) {
+			socket.transportIds.forEach((transportId) => {
+				const transport = liveClass.getTransport(transportId);
+				transport?.close();
+			});
+		}
+
 		socket.transportIds = [];
 		socket.to(classId).emit("classEnded");
 		callback({ message: "ended" });
@@ -374,6 +383,8 @@ export default async function recordClassHandler(io, socket, worker, router) {
 					appData: { forRecord: true },
 				});
 
+				socket.transportIds.push(rtpTransport.id);
+
 				const { data: info, consumer } = await publishProducerRtpStream(
 					liveClass,
 					producer,
@@ -381,7 +392,6 @@ export default async function recordClassHandler(io, socket, worker, router) {
 					router
 				);
 
-				console.log(producer.kind, info);
 				recordInfo[producer.kind] = info;
 
 				setTimeout(async () => {
