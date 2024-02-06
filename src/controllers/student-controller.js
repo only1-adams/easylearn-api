@@ -113,6 +113,10 @@ export const uploadProfilePic = asyncCatch(async (req, res) => {
 
 	const student = await studentService.getStudentByUserId(user._id);
 
+	if (!student) {
+		throwError("Student not found", 404);
+	}
+
 	const { url, key } = await uploadProfilePicture(
 		fileType,
 		fileExtension,

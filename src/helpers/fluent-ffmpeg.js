@@ -8,7 +8,7 @@ import recordedVideoUploader from "../queues/live-record.queue.js";
 
 config();
 
-const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
+const s3Client = new S3Client({ region: "us-east-1" });
 
 class FFmpeg {
 	constructor(rtpParameters, classId) {
@@ -21,7 +21,7 @@ class FFmpeg {
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
 
 		this.Writable = new Writable({
-			highWaterMark: 50 * 1024 * 1024,
+			highWaterMark: 10 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
 				const instance = this;
 				this.processChunk(chunk, encoding, callback, instance);

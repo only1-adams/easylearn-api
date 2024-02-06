@@ -32,6 +32,7 @@ class recordedVideoUploader {
 				PartNumber: partNumber,
 			});
 		} catch (error) {
+			console.log(error);
 			this.storeBuffer(partNumber, buffer, key);
 		}
 	}
