@@ -24,12 +24,8 @@ import {
 } from "../helpers/live-record-helpers.js";
 import FFmpeg from "../helpers/fluent-ffmpeg.js";
 import { createRouter } from "../helpers/mediasoup-helpers.js";
-import { S3Client } from "@aws-sdk/client-s3";
-import { initiateMultipartUpload } from "../helpers/s3-upload-helpers.js";
 
 config();
-
-const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
 
 const liveService = new LiveService(LiveModel, ClassModel);
 const creatorService = new CreatorService(
@@ -69,11 +65,15 @@ export default async function recordClassHandler(
 	socket.on("getRtpCapabilities", async (callback) => {
 		try {
 			const classData = await creatorService.getClassdata(classId);
+			const liveClass = liveClasses.get(classId);
+
 			if (classData.status === "finished") {
 				throwError("This class has been completed");
 			}
 
-			const liveClass = liveClasses.get(classId);
+			if (!liveClass) {
+				throwError("This class has been completed");
+			}
 
 			const routerToUse = isProducer
 				? liveClass.routers.producerRouter
@@ -267,34 +267,44 @@ export default async function recordClassHandler(
 	});
 
 	socket.on("endLiveClass", async (data, callback) => {
-		const { classId } = socket.handshake.auth;
-		const { transportId, audioTransportId } = data;
+		try {
+			const { classId } = socket.handshake.auth;
+			const { transportId, audioTransportId } = data;
 
-		const liveClass = liveClasses.get(classId);
-		// const transport = liveClass.getTransport(transportId);
-		// const audioTransport = liveClass.getTransport(audioTransportId);
+			socket.to(classId).emit("classEnded");
 
-		liveClass.routers.producerRouter.close();
-		liveClass.routers.consumerRouter.close();
+			const liveClass = liveClasses.get(classId);
+			// const transport = liveClass.getTransport(transportId);
+			// const audioTransport = liveClass.getTransport(audioTransportId);
 
-		const participants = await getClassParticipants(classId);
+			liveClass.routers.producerRouter.close();
+			liveClass.routers.consumerRouter.close();
 
-		if (participants) {
-			await Promise.all(
-				participants.map(async (participant) => {
-					const id = getParticipantId(participant);
-					await deleteParticipant(id);
-					return true;
-				})
-			);
+			const participants = await getClassParticipants(classId);
+
+			if (participants) {
+				await Promise.all(
+					participants.map(async (participant) => {
+						const id = getParticipantId(participant);
+						await deleteParticipant(id);
+						return true;
+					})
+				);
+			}
+
+			liveClasses.delete(classId);
+			await liveService.deleteLiveClass(classId);
+			await creatorService.updateClass(classId, { status: "finished" });
+
+			callback({ message: "ended" });
+		} catch (error) {
+			console.log(error);
+			callback({
+				error: {
+					message: error.message || "An error occurred! Please try again",
+				},
+			});
 		}
-
-		liveClasses.delete(classId);
-		await liveService.deleteLiveClass(classId);
-		await creatorService.updateClass(classId, { status: "finished" });
-
-		socket.to(classId).emit("classEnded");
-		callback({ message: "ended" });
 	});
 
 	socket.on("leaveClass", async (data) => {
@@ -360,7 +370,7 @@ export default async function recordClassHandler(
 
 		try {
 			const message = await messageService.createMessage(data);
-			socket.to(classId).emit("message", message);
+			socket.to(classId).emit("messageReceived", message);
 			callback({ message });
 		} catch (error) {
 			callback({
@@ -454,8 +464,6 @@ export default async function recordClassHandler(
 					await consumer.requestKeyFrame();
 				}, 1000);
 			}
-
-			
 
 			recordInfo.fileName = Date.now().toString();
 			liveClass.process = new FFmpeg(recordInfo, classId);
