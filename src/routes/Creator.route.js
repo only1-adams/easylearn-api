@@ -40,6 +40,12 @@ router.post(
 		body("courseTitle").exists().trim().notEmpty(),
 		body("courseCode").exists().trim().notEmpty(),
 		body("lecturerName").exists().trim().notEmpty(),
+		body("status")
+			.optional()
+			.isString()
+			.trim()
+			.notEmpty()
+			.isIn(["ongoing", "finished","recording"]),
 	],
 	createClass
 );

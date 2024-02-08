@@ -29,7 +29,7 @@ export const classSchema = new Schema(
 
 		status: {
 			type: String,
-			enum: ["ongoing", "finished"],
+			enum: ["ongoing", "finished", "recording"],
 			required: true,
 			default: "ongoing",
 		},
