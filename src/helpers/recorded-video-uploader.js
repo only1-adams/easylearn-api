@@ -1,9 +1,5 @@
 import { config } from "dotenv";
 import { fork } from "node:child_process";
-import {
-	UploadPartCommand,
-	CompleteMultipartUploadCommand,
-} from "@aws-sdk/client-s3";
 import CreatorService from "../services/Creator.service.js";
 import CreatorModel from "../models/Creator.model.js";
 import ClassModel from "../models/Class.model.js";
@@ -20,77 +16,62 @@ const creatorService = new CreatorService(
 class recordedVideoUploader {
 	constructor(uploadId, classId, s3Client) {
 		this.uploadId = uploadId;
-		this.s3Client = s3Client;
 		this.classId = classId;
-		this.uploadedParts = new Map();
+
+		this.s3Client = s3Client;
+		this.uploadedParts = new Map(); // parts that were uploaded successfully
+
+		this.uploadProcess = fork("./src/processes/recorded-video-process");
+		this.uploadProcessHandler();
 	}
 
-	async storeBuffer(partNumber, buffer, key) {
-		try {
-			const params = await this.s3UploadPart(partNumber, buffer, key);
-			this.uploadedParts.set(partNumber, {
-				ETag: params.ETag,
-				PartNumber: partNumber,
-			});
-		} catch (error) {
-			console.log("upload error:", error);
-			this.storeBuffer(partNumber, buffer, key);
-		}
+	uploadProcessHandler() {
+		this.uploadProcess.on("message", (message) => {
+			if (message.type === "upload-complete") {
+				const { PartNumber, ETag } = message;
+				this.uploadedParts.set(PartNumber, { PartNumber, ETag });
+			}
+
+			if (message.type === "multipart-success") {
+				(async () => {
+					const { key } = message;
+					await creatorService.updateClass(this.classId, { recordUrl: key });
+					this.uploadProcess.kill();
+				})();
+			}
+		});
 	}
 
-	async s3UploadPart(partNumber, buffer, key) {
-		const uploadPartParams = {
-			Bucket: process.env.S3_BUCKET_NAME,
-			Key: key,
-			PartNumber: partNumber,
-			UploadId: this.uploadId,
-			Body: buffer,
-		};
-
-		console.log("initiating s3 upload", partNumber);
-
-		const uploadPartCommand = new UploadPartCommand(uploadPartParams);
-
-		const partParams = await this.s3Client.send(uploadPartCommand);
-
-		console.log("done with s3 upload", partNumber);
-
-		return partParams;
-	}
-
-	async s3CompleteUpload(key, parts) {
-		console.log(key, parts, "complete");
-		const completeMultipartUploadParams = {
-			Bucket: process.env.S3_BUCKET_NAME,
-			Key: key,
-			UploadId: this.uploadId,
-			MultipartUpload: { Parts: parts },
-		};
-
-		const completeMultipartUploadCommand = new CompleteMultipartUploadCommand(
-			completeMultipartUploadParams
-		);
-
-		await this.s3Client.send(completeMultipartUploadCommand);
-
-		console.log("S3 upload completed");
-
-		return true;
+	async initiateUpload(partNumber, buffer, key) {
+		this.uploadProcess.send({
+			type: "upload-buffer",
+			buffer: buffer.toString("base64"),
+			key,
+			partNumber,
+			uploadId: this.uploadId,
+		});
 	}
 
 	async complete(totalUploadsMade, key) {
 		const checkCompletion = async () => {
-			if (totalUploadsMade === this.uploadedParts.size) {
-				await this.s3CompleteUpload(
-					key,
-					Array.from(this.uploadedParts.values())
+			const allPartsUploaded = totalUploadsMade === this.uploadedParts.size; // check if all parts have been uploaded
+
+			if (allPartsUploaded) {
+				const sortedParts = Array.from(this.uploadedParts.values()).sort(
+					(a, b) => a.PartNumber - b.PartNumber
 				);
+
+				this.uploadProcess.send({
+					type: "complete-multipart",
+					key,
+					parts: sortedParts,
+					uploadId: this.uploadId,
+				});
+
 				this.uploadedParts.clear();
-				await creatorService.updateClass(this.classId, { recordUrl: key });
 				return true;
 			} else {
-				// Retry after a delay
-				setTimeout(checkCompletion, 1000); // Adjust the delay as needed
+				setTimeout(checkCompletion, 1000);
 			}
 		};
 

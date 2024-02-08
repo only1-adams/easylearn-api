@@ -8,7 +8,7 @@ import recordedVideoUploader from "./recorded-video-uploader.js";
 
 config();
 
-const s3Client = new S3Client({ region: "us-east-1" });
+const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
 
 class FFmpeg {
 	constructor(rtpParameters, classId) {
@@ -47,20 +47,7 @@ class FFmpeg {
 			.audioCodec("copy")
 			.outputFormat("webm")
 			.on("start", async () => {
-				const response = await initiateMultipartUpload(
-					`record-${this.classId}.webm`,
-					s3Client
-				); // prepare to upload to S3
-
-				this.uploadId = response.UploadId;
-
-				this.uploader = new recordedVideoUploader(
-					response.UploadId,
-					this.classId,
-					s3Client
-				);
-
-				console.log("Multipart upload initiated. Upload ID:", this.uploadId);
+				await this.prepareToUploadToS3();
 			})
 			.on("error", async (err, stdout, stderr) => {
 				console.error("Error:", err);
@@ -68,6 +55,25 @@ class FFmpeg {
 				console.error("ffmpeg::process::stderr", stderr);
 			})
 			.pipe(this.Writable, { end: true }); // pipe output to writable stream
+	}
+
+	async prepareToUploadToS3() {
+		const response = await initiateMultipartUpload(
+			`record-${this.classId}.webm`,
+			s3Client
+		);
+
+		this.uploadId = response.UploadId;
+
+		this.uploader = new recordedVideoUploader(
+			response.UploadId,
+			this.classId,
+			s3Client
+		);
+
+		console.log("Multipart upload initiated. Upload ID:", this.uploadId);
+
+		return true;
 	}
 
 	async processChunk(chunk, encoding, callback, instance) {
@@ -81,7 +87,7 @@ class FFmpeg {
 				console.log(bufferSize, "in");
 				instance.partNumber += 1;
 
-				instance.uploader.storeBuffer(
+				instance.uploader.initiateUpload(
 					instance.partNumber,
 					buffer,
 					`record-${instance.classId}.webm`
@@ -97,8 +103,8 @@ class FFmpeg {
 	}
 
 	async kill() {
-		console.log("kill()");
 		if (!this.process) {
+			console.log("no process");
 			return;
 		}
 
@@ -107,7 +113,7 @@ class FFmpeg {
 		if (this.accumulatedChunks.length > 0) {
 			this.partNumber += 1;
 			const buffer = Buffer.concat(this.accumulatedChunks);
-			this.uploader.storeBuffer(
+			this.uploader.initiateUpload(
 				this.partNumber,
 				buffer,
 				`record-${this.classId}.webm`

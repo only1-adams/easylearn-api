@@ -1,11 +1,23 @@
 class LiveClass {
 	constructor(classId) {
 		this.classId = classId;
+		this.routers = {
+			producerRouter: null,
+			consumerRouter: null,
+		};
 		this.transports = [];
 		this.producers = [];
 		this.consumers = [];
 		this.remotePorts = [];
 		this.process = undefined;
+	}
+
+	setProducerRouter(router) {
+		this.routers.producerRouter = router;
+	}
+
+	setConsumerRouter(router) {
+		this.routers.consumerRouter = router;
 	}
 
 	addTransport(transport) {
