@@ -7,14 +7,19 @@ const redis = createClient({
 		host: process.env.REDIS_HOST,
 		port: Number(process.env.REDIS_PORT),
 	},
-	password: "easylearngangan",
+	password: process.env.REDIS_PASSWORD,
+});
+
+redis.on("error", (err) => {
+	console.log(err);
+	process.exit(1);
 });
 
 export let participantRepo;
 
 async function initRedisSchema() {
 	await redis.connect();
-	
+
 	const participantSchema = new Schema("participant", {
 		class: { type: "string" },
 		student: { type: "string" },

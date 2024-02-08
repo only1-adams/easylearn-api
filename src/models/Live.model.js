@@ -17,6 +17,12 @@ const liveSchema = new Schema(
 			max: 2,
 			required: true,
 		},
+
+		routers: {
+			type: [String],
+			max: 3,
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );
