@@ -43,8 +43,10 @@ class FFmpeg {
 			.input(sdpStream)
 			.inputFormat("sdp")
 			.inputOptions(["-protocol_whitelist", "pipe,udp,rtp"])
+			.videoFilters("transpose=1")
 			.videoCodec("copy")
 			.audioCodec("copy")
+			.outputOptions("-c:a copy")
 			.outputFormat("webm")
 			.on("start", async () => {
 				await this.prepareToUploadToS3();
