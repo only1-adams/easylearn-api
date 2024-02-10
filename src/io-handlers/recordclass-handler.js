@@ -72,7 +72,7 @@ export default async function recordClassHandler(
 			}
 
 			if (!liveClass) {
-				throwError("This class has been completed");
+				throwError("This class has been completed or has not started yet");
 			}
 
 			const routerToUse = isProducer
