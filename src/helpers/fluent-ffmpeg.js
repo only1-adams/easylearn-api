@@ -11,7 +11,7 @@ config();
 const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
 
 class FFmpeg {
-	constructor(rtpParameters, classId) {
+	constructor(rtpParameters, classId, isMobile) {
 		this.rtpParameters = rtpParameters;
 		this.classId = classId;
 		this.process = null; // To keep track of the FFmpeg process
@@ -19,6 +19,7 @@ class FFmpeg {
 		this.accumulatedChunks = [];
 		this.partNumber = 0;
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
+		this.isMobile = isMobile;
 
 		this.Writable = new Writable({
 			highWaterMark: 10 * 1024 * 1024,
@@ -38,12 +39,37 @@ class FFmpeg {
 		console.log("createProcess() [sdpString:%s]", sdpString);
 
 		//inject stream into ffmpeg
+		if (this.isMobile) {
+			this.mobileProcess(sdpStream);
+		} else {
+			this.PCProcess(sdpStream);
+		}
+	}
 
+	mobileProcess(sdpStream) {
 		this.process = Ffmpeg()
 			.input(sdpStream)
 			.inputFormat("sdp")
 			.inputOptions(["-protocol_whitelist", "pipe,udp,rtp"])
-			.videoFilters("transpose=1")
+			.videoFilters("transpose=1") // setting correct video orientation for mobile
+			.audioCodec("copy")
+			.outputFormat("webm")
+			.on("start", async () => {
+				await this.prepareToUploadToS3();
+			})
+			.on("error", async (err, stdout, stderr) => {
+				console.error("Error:", err);
+				console.error("ffmpeg::process::stdout", stdout);
+				console.error("ffmpeg::process::stderr", stderr);
+			})
+			.pipe(this.Writable, { end: true }); // pipe output to writable stream
+	}
+
+	PCProcess(sdpStream) {
+		this.process = Ffmpeg()
+			.input(sdpStream)
+			.inputFormat("sdp")
+			.inputOptions(["-protocol_whitelist", "pipe,udp,rtp"])
 			.audioCodec("copy")
 			.outputFormat("webm")
 			.on("start", async () => {

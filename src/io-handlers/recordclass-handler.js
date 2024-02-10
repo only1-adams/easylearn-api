@@ -415,8 +415,9 @@ export default async function recordClassHandler(
 		cb({ participants });
 	});
 
-	socket.on("startLiveRecord", async (callback) => {
+	socket.on("startLiveRecord", async (data, callback) => {
 		const { classId } = socket.handshake.auth;
+		const { isMobile } = data;
 
 		try {
 			const liveClassData = await liveService.getClassLive(classId);
@@ -466,7 +467,7 @@ export default async function recordClassHandler(
 			}
 
 			recordInfo.fileName = Date.now().toString();
-			liveClass.process = new FFmpeg(recordInfo, classId);
+			liveClass.process = new FFmpeg(recordInfo, classId, isMobile);
 
 			callback({ message: "done" });
 		} catch (error) {

@@ -64,17 +64,47 @@ export const getStudentProfile = asyncCatch(async (req, res) => {
 
 export const getStudentLives = asyncCatch(async (req, res) => {
 	const user = req.user;
+	const page = req.query.page;
+	const limit = 10;
+
+	const skip = (page - 1) * limit;
 
 	const student = await studentService.getStudentByUserId(user._id);
 
 	const lives = await studentService.getStudentLiveClasses(
+		student.department,
+		student.level,
+		skip,
+		limit
+	);
+
+	const totalDocuments = await studentService.countStudentLiveClasses(
 		student.department,
 		student.level
 	);
 
 	const filteredClasses = lives.filter((c) => c.creator !== null);
 
-	res.status(200).json({ lives: filteredClasses });
+	console.log(filteredClasses.length, lives.length, totalDocuments);
+
+	// Calculate total pages
+	const totalPages = Math.ceil(totalDocuments / limit);
+
+	// Determine if there are more pages
+	const hasNextPage = page < totalPages;
+
+	// Calculate next page number
+	const nextPage = hasNextPage ? +page + 1 : null;
+
+	res.status(200).json({
+		classes: filteredClasses,
+		pagination: {
+			currentPage: +page,
+			hasNextPage: hasNextPage,
+			totalPages: +totalPages,
+			nextPage: nextPage,
+		},
+	});
 });
 
 export const markAttendance = asyncCatch(async (req, res) => {
@@ -94,16 +124,46 @@ export const markAttendance = asyncCatch(async (req, res) => {
 
 export const getStudentRecordedClass = asyncCatch(async (req, res) => {
 	const user = req.user;
+	const page = req.query.page;
+	const limit = 10;
+
+	const skip = (page - 1) * limit;
 	const student = await studentService.getStudentByUserId(user._id);
 
 	const recordedClasses = await studentService.getStudentClassRecords(
+		student.department,
+		student.level,
+		skip,
+		limit
+	);
+
+	const totalDocuments = await studentService.countStudentRecordedClasses(
 		student.department,
 		student.level
 	);
 
 	const filteredClasses = recordedClasses.filter((c) => c.creator !== null);
 
-	res.status(200).json({ recordedClasses: filteredClasses });
+	console.log(filteredClasses.length, recordedClasses.length, totalDocuments);
+
+	// Calculate total pages
+	const totalPages = Math.ceil(totalDocuments / limit);
+
+	// Determine if there are more pages
+	const hasNextPage = page < totalPages;
+
+	// Calculate next page number
+	const nextPage = hasNextPage ? +page + 1 : null;
+
+	res.status(200).json({
+		classes: filteredClasses,
+		pagination: {
+			currentPage: +page,
+			hasNextPage: hasNextPage,
+			totalPages: +totalPages,
+			nextPage: nextPage,
+		},
+	});
 });
 
 export const uploadProfilePic = asyncCatch(async (req, res) => {

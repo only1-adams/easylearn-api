@@ -55,12 +55,25 @@ export default class StudentService {
 		return this.Student.findOne({ matricNo });
 	}
 
-	getStudentLiveClasses(departmentId, level) {
+	getStudentLiveClasses(departmentId, level, skip, limit) {
 		if (!departmentId) {
 			throwError("Department Id must be provided", 422);
 		}
 
 		return this.Class.find({ status: "ongoing" })
+			.populate({
+				path: "creator",
+				match: { department: departmentId, level },
+			})
+			.sort({
+				updatedAt: -1,
+			})
+			.skip(skip)
+			.limit(limit);
+	}
+
+	countStudentLiveClasses(departmentId, level) {
+		return this.Class.countDocuments({ status: "ongoing" })
 			.populate({
 				path: "creator",
 				match: { department: departmentId, level },
@@ -83,7 +96,7 @@ export default class StudentService {
 		return attendance.save();
 	}
 
-	getStudentClassRecords(departmentId, level) {
+	getStudentClassRecords(departmentId, level, skip, limit) {
 		if (!departmentId) {
 			throwError("Department Id must be provided", 422);
 		}
@@ -105,7 +118,22 @@ export default class StudentService {
 			})
 			.sort({
 				updatedAt: -1,
-			});
+			})
+			.skip(skip)
+			.limit(limit);
+	}
+
+	countStudentRecordedClasses(departmentId, level) {
+		return this.Class.countDocuments({
+			status: "finished",
+			recordUrl: { $exists: true, $ne: null },
+		}).populate({
+			path: "creator",
+			match: {
+				department: departmentId,
+				level,
+			},
+		});
 	}
 
 	getstarredClass(studentId) {
