@@ -345,6 +345,9 @@ export default async function recordClassHandler(
 			liveClass.routers.consumerRouter.close();
 
 			liveClasses.delete(classId);
+
+			await creatorService.updateClass(classId, { endTime: Date.now() });
+
 			io.to(classId).emit("classEnded");
 		}
 
@@ -419,6 +422,8 @@ export default async function recordClassHandler(
 		const { classId } = socket.handshake.auth;
 		const { isMobile } = data;
 
+		console.log("isMobile:", isMobile);
+
 		try {
 			const liveClassData = await liveService.getClassLive(classId);
 
@@ -469,6 +474,8 @@ export default async function recordClassHandler(
 			recordInfo.fileName = Date.now().toString();
 			liveClass.process = new FFmpeg(recordInfo, classId, isMobile);
 
+			await creatorService.updateClass(classId, { startTime: Date.now() });
+
 			callback({ message: "done" });
 		} catch (error) {
 			callback({
@@ -486,6 +493,9 @@ export default async function recordClassHandler(
 		await liveClass.process?.kill();
 		liveClass.process = undefined;
 		liveClass.remotePorts.forEach((port) => releasePort(port));
+
+		await creatorService.updateClass(classId, { endTime: Date.now() });
+
 		callback({ message: "done" });
 	});
 }

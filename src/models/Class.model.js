@@ -38,6 +38,14 @@ export const classSchema = new Schema(
 			type: String,
 			index: true,
 		},
+
+		startTime: {
+			type: Date,
+		},
+
+		endTime: {
+			type: Date,
+		},
 	},
 	{ timestamps: true }
 );
