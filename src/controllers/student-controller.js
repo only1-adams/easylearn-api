@@ -85,8 +85,6 @@ export const getStudentLives = asyncCatch(async (req, res) => {
 
 	const filteredClasses = lives.filter((c) => c.creator !== null);
 
-	console.log(filteredClasses.length, lives.length, totalDocuments);
-
 	// Calculate total pages
 	const totalPages = Math.ceil(totalDocuments / limit);
 
@@ -143,8 +141,6 @@ export const getStudentRecordedClass = asyncCatch(async (req, res) => {
 	);
 
 	const filteredClasses = recordedClasses.filter((c) => c.creator !== null);
-
-	console.log(filteredClasses.length, recordedClasses.length, totalDocuments);
 
 	// Calculate total pages
 	const totalPages = Math.ceil(totalDocuments / limit);

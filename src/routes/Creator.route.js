@@ -45,7 +45,7 @@ router.post(
 			.isString()
 			.trim()
 			.notEmpty()
-			.isIn(["ongoing", "finished","recording"]),
+			.isIn(["ongoing", "finished", "recording"]),
 	],
 	createClass
 );
@@ -59,6 +59,8 @@ router.put(
 		body("courseCode").optional().isString(),
 		body("lecturerName").optional().isString(),
 		body("recordUrl").optional().isString(),
+		body("startTime").optional().isDate(),
+		body("endTime").optional().isDate(),
 	],
 	createClass
 );

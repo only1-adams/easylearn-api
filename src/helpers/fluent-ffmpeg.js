@@ -17,14 +17,15 @@ class FFmpeg {
 		this.process = null; // To keep track of the FFmpeg process
 		this.uploadId = null; // To store the ID of the AWS S3 multipart upload
 		this.accumulatedChunks = [];
-		this.partNumber = 0;
+		this.partNumber = 0; // used to store the total number of parts uploaded to s3
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
+		this.totalSize = 0; // total of of chunks accumulated
 		this.isMobile = isMobile;
 
 		this.Writable = new Writable({
-			highWaterMark: 10 * 1024 * 1024,
+			highWaterMark: 50 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
-				const instance = this;
+				const instance = this; // saving the current instance, so we can use it in the write method
 				this.processChunk(chunk, encoding, callback, instance);
 			},
 		});
@@ -104,14 +105,17 @@ class FFmpeg {
 
 	async processChunk(chunk, encoding, callback, instance) {
 		try {
-			instance.accumulatedChunks.push(chunk);
-			const buffer = Buffer.concat(instance.accumulatedChunks);
-			const bufferSize = buffer.length;
-			console.log(bufferSize);
+			instance.accumulatedChunks.push(chunk); // store the accumulated chunk
+			instance.totalSize += chunk.length; // increment the total size
 
-			if (bufferSize >= instance.TARGET_SIZE) {
-				console.log(bufferSize, "in");
-				instance.partNumber += 1;
+			console.log(instance.totalSize);
+
+			// check if the size of the chunk is equal or greater than the target size
+			if (instance.totalSize >= instance.TARGET_SIZE) {
+				console.log(instance.totalSize, "in");
+				instance.partNumber += 1; // increment part number
+
+				const buffer = instance.createBufferFromChunks(instance); // create buffer
 
 				instance.uploader.initiateUpload(
 					instance.partNumber,
@@ -119,12 +123,40 @@ class FFmpeg {
 					`record-${instance.classId}.webm`
 				);
 
-				instance.accumulatedChunks.length = 0;
+				instance.resetAccumulatedChunks(instance); // reset accumulated chunks
 			}
 
 			callback();
 		} catch (error) {
 			callback(error);
+		}
+	}
+
+	createBufferFromChunks(instance) {
+		const buffer = Buffer.alloc(instance.totalSize);
+		let offset = 0;
+		for (const chunk of instance.accumulatedChunks) {
+			chunk.copy(buffer, offset);
+			offset += chunk.length;
+		}
+		return buffer;
+	}
+
+	resetAccumulatedChunks(instance) {
+		instance.accumulatedChunks = [];
+		instance.totalSize = 0;
+	}
+
+	uploadChunksLeft() {
+		// check if there are any chunks left
+		if (this.accumulatedChunks.length > 0) {
+			this.partNumber += 1;
+			const buffer = this.createBufferFromChunks(this);
+			this.uploader.initiateUpload(
+				this.partNumber,
+				buffer,
+				`record-${this.classId}.webm`
+			);
 		}
 	}
 
@@ -136,23 +168,15 @@ class FFmpeg {
 
 		console.log("end");
 
-		if (this.accumulatedChunks.length > 0) {
-			this.partNumber += 1;
-			const buffer = Buffer.concat(this.accumulatedChunks);
-			this.uploader.initiateUpload(
-				this.partNumber,
-				buffer,
-				`record-${this.classId}.webm`
-			);
-		}
+		this.uploadChunksLeft();
 
 		await this.uploader.complete(
 			this.partNumber,
 			`record-${this.classId}.webm`
 		);
 
-		this.process.end();
-		this.Writable.end();
+		this.process.end(); // terminate ffmpeg
+		this.Writable.end(); // end writable stream
 	}
 }
 
