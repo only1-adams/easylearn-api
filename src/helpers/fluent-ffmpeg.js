@@ -71,6 +71,7 @@ class FFmpeg {
 			.input(sdpStream)
 			.inputFormat("sdp")
 			.inputOptions(["-protocol_whitelist", "pipe,udp,rtp"])
+			.videoCodec("copy")
 			.audioCodec("copy")
 			.outputFormat("webm")
 			.on("start", async () => {
@@ -128,7 +129,6 @@ class FFmpeg {
 
 			callback();
 		} catch (error) {
-			console.log(error);
 			callback(error);
 		}
 	}

@@ -36,6 +36,7 @@ const creatorService = new CreatorService(
 const messageService = new MessageService(MessageModel);
 
 let participantEntityID; // used for getting the participant from redis via Redis-Om
+let intervalId;
 
 const liveClasses = new Map();
 
@@ -490,6 +491,7 @@ export default async function recordClassHandler(
 		const { classId } = socket.handshake.auth;
 		const liveClass = liveClasses.get(classId);
 
+		
 		await liveClass.process?.kill();
 		liveClass.process = undefined;
 		liveClass.remotePorts.forEach((port) => releasePort(port));
