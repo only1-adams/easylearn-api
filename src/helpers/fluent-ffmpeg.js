@@ -23,7 +23,7 @@ class FFmpeg {
 		this.isMobile = isMobile;
 
 		this.Writable = new Writable({
-			highWaterMark: 50 * 1024 * 1024,
+			highWaterMark: 10 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
 				const instance = this; // saving the current instance, so we can use it in the write method
 				this.processChunk(chunk, encoding, callback, instance);
@@ -128,6 +128,7 @@ class FFmpeg {
 
 			callback();
 		} catch (error) {
+			console.log(error);
 			callback(error);
 		}
 	}
