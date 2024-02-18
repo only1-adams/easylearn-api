@@ -39,6 +39,8 @@ export const classSchema = new Schema(
 			index: true,
 		},
 
+		isMobile: Boolean,
+
 		startTime: {
 			type: Date,
 		},

@@ -475,7 +475,10 @@ export default async function recordClassHandler(
 			recordInfo.fileName = Date.now().toString();
 			liveClass.process = new FFmpeg(recordInfo, classId, isMobile);
 
-			await creatorService.updateClass(classId, { startTime: Date.now() });
+			await creatorService.updateClass(classId, {
+				startTime: Date.now(),
+				isMobile,
+			});
 
 			callback({ message: "done" });
 		} catch (error) {
@@ -491,7 +494,6 @@ export default async function recordClassHandler(
 		const { classId } = socket.handshake.auth;
 		const liveClass = liveClasses.get(classId);
 
-		
 		await liveClass.process?.kill();
 		liveClass.process = undefined;
 		liveClass.remotePorts.forEach((port) => releasePort(port));

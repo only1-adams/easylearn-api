@@ -20,10 +20,10 @@ class FFmpeg {
 		this.partNumber = 0; // used to store the total number of parts uploaded to s3
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
 		this.totalSize = 0; // total of of chunks accumulated
-		this.isMobile = isMobile;
+		this.isMobile = true;
 
 		this.Writable = new Writable({
-			highWaterMark: 10 * 1024 * 1024,
+			highWaterMark: 50 * 1024 * 1024,
 			write: (chunk, encoding, callback) => {
 				const instance = this; // saving the current instance, so we can use it in the write method
 				this.processChunk(chunk, encoding, callback, instance);
@@ -40,33 +40,6 @@ class FFmpeg {
 		console.log("createProcess() [sdpString:%s]", sdpString);
 
 		//inject stream into ffmpeg
-		if (this.isMobile) {
-			this.mobileProcess(sdpStream);
-		} else {
-			this.PCProcess(sdpStream);
-		}
-	}
-
-	mobileProcess(sdpStream) {
-		this.process = Ffmpeg()
-			.input(sdpStream)
-			.inputFormat("sdp")
-			.inputOptions(["-protocol_whitelist", "pipe,udp,rtp"])
-			.videoFilters("transpose=1") // setting correct video orientation for mobile
-			.audioCodec("copy")
-			.outputFormat("webm")
-			.on("start", async () => {
-				await this.prepareToUploadToS3();
-			})
-			.on("error", async (err, stdout, stderr) => {
-				console.error("Error:", err);
-				console.error("ffmpeg::process::stdout", stdout);
-				console.error("ffmpeg::process::stderr", stderr);
-			})
-			.pipe(this.Writable, { end: true }); // pipe output to writable stream
-	}
-
-	PCProcess(sdpStream) {
 		this.process = Ffmpeg()
 			.input(sdpStream)
 			.inputFormat("sdp")
