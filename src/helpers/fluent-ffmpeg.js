@@ -20,7 +20,7 @@ class FFmpeg {
 		this.partNumber = 0; // used to store the total number of parts uploaded to s3
 		this.TARGET_SIZE = 5 * 1024 * 1024; // Mb of chunks per s3 upload
 		this.totalSize = 0; // total of of chunks accumulated
-		this.isMobile = true;
+		this.isMobile = isMobile;
 
 		this.Writable = new Writable({
 			highWaterMark: 50 * 1024 * 1024,
