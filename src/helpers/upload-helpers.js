@@ -11,7 +11,7 @@ const s3 = new S3Client({
 
 const getUploadURL = async (key, contentType) => {
 	const params = {
-		Bucket: "myklefblog-bucket",
+		Bucket: process.env.S3_BUCKET_NAME,
 		Key: key,
 		ContentType: contentType,
 		ACL: "public-read",
