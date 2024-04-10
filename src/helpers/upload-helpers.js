@@ -6,7 +6,7 @@ import { v4 } from "uuid";
 config();
 
 const s3 = new S3Client({
-	region: "us-east-1",
+	region: "us-west-2",
 });
 
 const getUploadURL = async (key, contentType) => {
