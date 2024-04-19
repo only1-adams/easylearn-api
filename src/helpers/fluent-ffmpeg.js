@@ -8,7 +8,7 @@ import recordedVideoUploader from "./recorded-video-uploader.js";
 
 config();
 
-const s3Client = new S3Client({ region: "eu-west-2", forcePathStyle: true });
+const s3Client = new S3Client({ region: "eu-west-2" });
 
 class FFmpeg {
 	constructor(rtpParameters, classId, isMobile) {

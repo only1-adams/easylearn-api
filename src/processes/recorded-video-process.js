@@ -7,7 +7,7 @@ import {
 
 config();
 
-const s3Client = new S3Client({ region: "us-east-1", forcePathStyle: true });
+const s3Client = new S3Client({ region: "eu-west-2", forcePathStyle: true });
 
 async function s3UploadPart(partNumber, buffer, key, uploadId) {
 	const uploadPartParams = {
